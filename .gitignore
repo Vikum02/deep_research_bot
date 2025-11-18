@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Jac outputs
+*.jacd
+*.jaco
+
+# Editor settings
+.vscode/
+
+# System files
+Thumbs.db
+.DS_Store
+
+# Secrets
+*.env
+.env
+apikey.txt
