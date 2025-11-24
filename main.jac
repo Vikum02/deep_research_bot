@@ -1,3 +1,4 @@
+
 import from byllm.lib { Model }
 
 glob llm = Model(
@@ -7,3 +8,13 @@ glob llm = Model(
 );
 
 def chat_with_user(query: str, detail_level: str = "short") -> str by llm();
+
+walker agent {
+    has message: str;
+
+    can ask with `root entry{
+        result = chat_with_user(self.message);
+        report result;
+    }
+}
+
