@@ -5,6 +5,7 @@
   "scripts": {
     "build": "npm run compile && vite build",
     "dev": "vite dev",
+    "dev:jac": "nodemon --watch app.jac --watch app.cl.jac --ext jac --exec 'jac serve app.jac'",
     "preview": "vite preview",
     "compile": "babel src --out-dir build --extensions \".jsx,.js\" --out-file-extension .js"
   },
@@ -18,6 +19,7 @@
     "@babel/core": "^7.28.5",
     "@babel/preset-env": "^7.28.5",
     "@babel/preset-react": "^7.28.5",
+    "nodemon": "^3.1.11",
     "vite": "^6.4.1"
   },
   "dependencies": {

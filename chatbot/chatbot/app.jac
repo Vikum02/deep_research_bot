@@ -6,6 +6,10 @@ glob llm = Model(
     max_tokens=300
 );
 
+"""Answer the user's current question, considering the previous conversation history for context. 
+If the conversation history is empty, just answer the current question normally.
+If there is conversation history, use it to understand context and provide better, more relevant answers.
+IMPORTANT: Do not repeat or echo the conversation history in your response. Only provide a direct answer to the current question."""
 def ask_llm(current_question: str, conversation_history: str) -> str by llm();
 
 walker chat_agent {
