@@ -55,14 +55,22 @@ function Chat() {
     _useState6 = _slicedToArray(_useState5, 2),
     loading = _useState6[0],
     setLoading = _useState6[1];
+  var _useState7 = useState(false),
+    _useState8 = _slicedToArray(_useState7, 2),
+    awaitingClarification = _useState8[0],
+    setAwaitingClarification = _useState8[1];
+  var _useState9 = useState(""),
+    _useState0 = _slicedToArray(_useState9, 2),
+    originalQuestion = _useState0[0],
+    setOriginalQuestion = _useState0[1];
   function sendMessage() {
     return _sendMessage.apply(this, arguments);
   }
   function _sendMessage() {
     _sendMessage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      var user_msg, formatted_history, _iterator, _step, msg, userMessageObj, result, reply_text, r, botMessageObj;
+      var user_msg, formatted_history, _iterator, _step, msg, input_to_send, userMessageObj, result, reply_text, report, botMessageObj, is_asking_clarification;
       return _regenerator().w(function (_context) {
-        while (1) switch (_context.p = _context.n) {
+        while (1) switch (_context.n) {
           case 0:
             if (!loading) {
               _context.n = 1;
@@ -87,7 +95,7 @@ function Chat() {
                   if (msg.sender === "user") {
                     formatted_history += "User: " + msg.text + "\\n";
                   } else {
-                    formatted_history += "Bot: " + msg.text + "\\n";
+                    formatted_history += "Assistant: " + msg.text + "\\n";
                   }
                 }
               } catch (err) {
@@ -95,6 +103,10 @@ function Chat() {
               } finally {
                 _iterator.f();
               }
+            }
+            input_to_send = user_msg;
+            if (awaitingClarification) {
+              input_to_send = originalQuestion + " - " + user_msg;
             }
             userMessageObj = {
               "text": user_msg,
@@ -106,22 +118,24 @@ function Chat() {
             });
             setCurrentMessage("");
             setLoading(true);
-            _context.p = 3;
-            _context.n = 4;
-            return __jacSpawn("chat_agent", "", {
-              "userinput": user_msg,
+            _context.n = 3;
+            return __jacSpawn("chat_bot", "", {
+              "userinput": input_to_send,
               "formatted_history": formatted_history
             });
-          case 4:
+          case 3:
             result = _context.v;
             reply_text = "";
             if (result && result.reports && result.reports.length > 0) {
-              r = result.reports[0];
-              if (Array.isArray(r) && r.length > 0) {
-                reply_text = "" + r[0];
-              } else if (r) {
-                reply_text = "" + r;
+              report = result.reports[0];
+              if (Array.isArray(report)) {
+                reply_text = String(report[0] || "");
+              } else {
+                reply_text = String(report || "");
               }
+            }
+            if (!reply_text || !reply_text.trim()) {
+              reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
             }
             botMessageObj = {
               "text": reply_text,
@@ -131,14 +145,19 @@ function Chat() {
             setChatHistory(function (prev) {
               return prev.concat([botMessageObj]);
             });
-          case 5:
-            _context.p = 5;
+            is_asking_clarification = reply_text.trim().endsWith("?");
+            if (is_asking_clarification && !awaitingClarification) {
+              setAwaitingClarification(true);
+              setOriginalQuestion(user_msg);
+            } else if (awaitingClarification) {
+              setAwaitingClarification(false);
+              setOriginalQuestion("");
+            }
             setLoading(false);
-            return _context.f(5);
-          case 6:
+          case 4:
             return _context.a(2);
         }
-      }, _callee, null, [[3,, 5, 6]]);
+      }, _callee);
     }));
     return _sendMessage.apply(this, arguments);
   }
@@ -301,6 +320,7 @@ function Chat() {
     },
     "placeholder": "Type your message here...",
     "variant": "outlined",
+    "disabled": loading,
     "sx": {
       backgroundColor: "white",
       borderRadius: 2,
@@ -343,23 +363,9 @@ function Chat() {
         transform: "none"
       }
     }
-  }, [__jacJsx(Send, {
-    "sx": {
-      transition: "transform 0.3s ease",
-      ".MuiButton-root:hover &": {
-        transform: "translateX(3px)"
-      }
-    }
-  }, [])])])])]);
+  }, [__jacJsx(Send, {}, [])])])])]);
 }
 function app() {
-  useEffect(function () {
-    document.body.style.margin = "0";
-    document.body.style.padding = "0";
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.margin = "0";
-    document.documentElement.style.padding = "0";
-  }, []);
   return __jacJsx(ThemeProvider, {
     "theme": theme
   }, [__jacJsx(Box, {

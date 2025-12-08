@@ -1,24 +1,34 @@
 import from byllm.lib { Model }
 
 glob llm = Model(
-    model_name="gemini/gemini-2.0-flash",
-    temperature=0.4,
-    max_tokens=300
+    model_name="mistral/mistral-large-latest",
+    temperature=0.7,
+    max_tokens=500
 );
 
-"""Answer the user's current question, considering the previous conversation history for context. 
-If the conversation history is empty, just answer the current question normally.
-If there is conversation history, use it to understand context and provide better, more relevant answers.
-IMPORTANT: Do not repeat or echo the conversation history in your response. Only provide a direct answer to the current question."""
-def ask_llm(current_question: str, conversation_history: str) -> str by llm();
+"""You are a helpful AI assistant. Decide intelligently whether to answer directly or ask for clarification.
 
-walker chat_agent {
+ANSWER DIRECTLY if the question is clear and complete:
+- "What is photosynthesis?" → Explain it
+- "What is 2+2?" → Answer "4"
+- "Who wrote Romeo and Juliet?" → "Shakespeare"
+
+ASK FOR CLARIFICATION if the question is ambiguous or vague:
+- "Python" → "Programming or the reptile?"
+- "weather" → "Which city?"
+- "recipe" → "What type - breakfast, lunch, or dinner?"
+
+If conversation history shows you previously asked for clarification, the user is now responding - combine their response with the original question and provide a complete answer.
+
+Be natural, conversational, and accurate."""
+def intelligent_chat(user_input: str, conversation_history: str) -> str by llm();
+
+walker chat_bot {
     has userinput: str;
     has formatted_history: str;
 
-    can chat with `root entry {
-        response = ask_llm(self.userinput, self.formatted_history);
+    can process with `root entry {
+        response = intelligent_chat(self.userinput, self.formatted_history);
         report response;
     }
 }
-

@@ -1,0 +1,6 @@
+{
+  "watch": ["server.jac", "app.cl.jac"],
+  "ext": "jac",
+  "exec": "jac serve server.jac app.cl.jac",
+  "ignore": ["node_modules/**", "*.log"]
+}

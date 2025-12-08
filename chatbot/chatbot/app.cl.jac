@@ -20,7 +20,6 @@ import from '@mui/icons-material' {
     Send
 }
 
-
 glob theme = createTheme({
     palette: {
         primary: {
@@ -55,24 +54,30 @@ def Chat() -> any {
     let [chatHistory, setChatHistory] = useState([]);
     let [loading, setLoading] = useState(false);
 
+    let [awaitingClarification, setAwaitingClarification] = useState(false);
+    let [originalQuestion, setOriginalQuestion] = useState("");
+
     async def sendMessage() -> None {
         if loading { return; }
         if not currentMessage.trim() { return; }
 
         let user_msg = currentMessage.trim();
-        
+      
         let formatted_history = "";
-        
         if (chatHistory.length > 0) {
             formatted_history = "Previous conversation:\n";
-            
             for msg in chatHistory {
                 if (msg.sender == "user") {
                     formatted_history += "User: " + msg.text + "\n";
                 } else {
-                    formatted_history += "Bot: " + msg.text + "\n";
+                    formatted_history += "Assistant: " + msg.text + "\n";
                 }
             }
+        }
+
+        let input_to_send = user_msg;
+        if (awaitingClarification) {
+            input_to_send = originalQuestion + " - " + user_msg;
         }
 
         let userMessageObj = {
@@ -86,38 +91,48 @@ def Chat() -> any {
         });
         
         setCurrentMessage("");
-        
         setLoading(true);
 
-        try {
-            let result = root spawn chat_agent(
-                userinput = user_msg,
-                formatted_history = formatted_history
-            );
-            let reply_text = "";
-            if (result and result.reports and result.reports.length > 0) {
-                let r = result.reports[0];
+        let result = root spawn chat_bot(
+            userinput = input_to_send,
+            formatted_history = formatted_history
+        );
 
-                if (Array.isArray(r) and r.length > 0) {
-                    reply_text = "" + r[0];
-                } elif (r) {
-                    reply_text = "" + r;
-                }
+        let reply_text = "";
+        if (result and result.reports and result.reports.length > 0) {
+            let report = result.reports[0];
+            if (Array.isArray(report)) {
+                reply_text = String(report[0] or "");
+            } else {
+                reply_text = String(report or "");
             }
-
-            let botMessageObj = {
-                "text": reply_text,
-                "sender": "bot",
-                "timestamp": Date.now()
-            };
-            
-            setChatHistory(lambda prev: any -> any { 
-                return prev.concat([botMessageObj]); 
-            });
-
-        } finally {
-            setLoading(false);
         }
+
+        if (not reply_text or not reply_text.trim()) {
+            reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
+        }
+
+        let botMessageObj = {
+            "text": reply_text,
+            "sender": "bot",
+            "timestamp": Date.now()
+        };
+        
+        setChatHistory(lambda prev: any -> any { 
+            return prev.concat([botMessageObj]); 
+        });
+
+        let is_asking_clarification = reply_text.trim().endsWith("?");
+        
+        if (is_asking_clarification and not awaitingClarification) {
+            setAwaitingClarification(true);
+            setOriginalQuestion(user_msg);
+        } elif (awaitingClarification) { 
+            setAwaitingClarification(false);
+            setOriginalQuestion("");
+        }
+
+        setLoading(false);
     }
 
     let chatContent = None;
@@ -285,6 +300,7 @@ def Chat() -> any {
                     }}
                     placeholder="Type your message here..."
                     variant="outlined"
+                    disabled={loading}
                     sx={{
                         backgroundColor: "white",
                         borderRadius: 2,
@@ -329,12 +345,7 @@ def Chat() -> any {
                         }
                     }}
                 >
-                    <Send sx={{
-                        transition: "transform 0.3s ease",
-                        ".MuiButton-root:hover &": {
-                            transform: "translateX(3px)"
-                        }
-                    }} />
+                    <Send />
                 </Button>
             </Box>
         </Fade>
@@ -342,14 +353,6 @@ def Chat() -> any {
 }
 
 def app() -> any {
-    useEffect(lambda -> None {
-        document.body.style.margin = "0";
-        document.body.style.padding = "0";
-        document.body.style.overflow = "hidden";
-        document.documentElement.style.margin = "0";
-        document.documentElement.style.padding = "0";
-    }, []);
-
     return <ThemeProvider theme={theme}>
         <Box sx={{
             minHeight: "100vh",

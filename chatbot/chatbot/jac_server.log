@@ -1,0 +1,40 @@
+nohup: ignoring input
+----------------------------------------
+Exception occurred during processing of request from ('127.0.0.1', 33864)
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/socketserver.py", line 318, in _handle_request_noblock
+    self.process_request(request, client_address)
+  File "/usr/lib/python3.12/socketserver.py", line 349, in process_request
+    self.finish_request(request, client_address)
+  File "/usr/lib/python3.12/socketserver.py", line 362, in finish_request
+    self.RequestHandlerClass(request, client_address, self)
+  File "/usr/lib/python3.12/socketserver.py", line 761, in __init__
+    self.handle()
+  File "/usr/lib/python3.12/http/server.py", line 436, in handle
+    self.handle_one_request()
+  File "/usr/lib/python3.12/http/server.py", line 424, in handle_one_request
+    method()
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/runtimelib/server.py", line 961, in do_GET
+    Jac.send_json(
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/runtimelib/machine.py", line 1914, in proxy
+    return hookcaller(**bound.arguments)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/vendor/pluggy/_hooks.py", line 513, in __call__
+    return self._hookexec(self.name, self._hookimpls.copy(), kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/vendor/pluggy/_manager.py", line 120, in _hookexec
+    return self._inner_hookexec(hook_name, methods, kwargs, firstresult)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/vendor/pluggy/_callers.py", line 139, in _multicall
+    raise exception.with_traceback(exception.__traceback__)
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/vendor/pluggy/_callers.py", line 103, in _multicall
+    res = hook_impl.function(*args)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/runtimelib/machine.py", line 1501, in send_json
+    ResponseBuilder.send_json(handler, status, data)
+  File "/home/vikum_02/chatbot/jacenv/lib/python3.12/site-packages/jaclang/runtimelib/server.py", line 608, in send_json
+    handler.wfile.write(json.dumps(data).encode())
+  File "/usr/lib/python3.12/socketserver.py", line 840, in write
+    self._sock.sendall(b)
+BrokenPipeError: [Errno 32] Broken pipe
+----------------------------------------

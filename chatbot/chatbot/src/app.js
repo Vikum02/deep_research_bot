@@ -8,6 +8,8 @@ function Chat() {
   let [currentMessage, setCurrentMessage] = useState("");
   let [chatHistory, setChatHistory] = useState([]);
   let [loading, setLoading] = useState(false);
+  let [awaitingClarification, setAwaitingClarification] = useState(false);
+  let [originalQuestion, setOriginalQuestion] = useState("");
   async function sendMessage() {
     if (loading) {
       return;
@@ -23,9 +25,13 @@ function Chat() {
         if (msg.sender === "user") {
           formatted_history += "User: " + msg.text + "\\n";
         } else {
-          formatted_history += "Bot: " + msg.text + "\\n";
+          formatted_history += "Assistant: " + msg.text + "\\n";
         }
       }
+    }
+    let input_to_send = user_msg;
+    if (awaitingClarification) {
+      input_to_send = originalQuestion + " - " + user_msg;
     }
     let userMessageObj = {"text": user_msg, "sender": "user", "timestamp": Date.now()};
     setChatHistory(prev => {
@@ -33,24 +39,32 @@ function Chat() {
     });
     setCurrentMessage("");
     setLoading(true);
-    try {
-      let result = await __jacSpawn("chat_agent", "", {"userinput": user_msg, "formatted_history": formatted_history});
-      let reply_text = "";
-      if (result && result.reports && result.reports.length > 0) {
-        let r = result.reports[0];
-        if (Array.isArray(r) && r.length > 0) {
-          reply_text = "" + r[0];
-        } else if (r) {
-          reply_text = "" + r;
-        }
+    let result = await __jacSpawn("chat_bot", "", {"userinput": input_to_send, "formatted_history": formatted_history});
+    let reply_text = "";
+    if (result && result.reports && result.reports.length > 0) {
+      let report = result.reports[0];
+      if (Array.isArray(report)) {
+        reply_text = String(report[0] || "");
+      } else {
+        reply_text = String(report || "");
       }
-      let botMessageObj = {"text": reply_text, "sender": "bot", "timestamp": Date.now()};
-      setChatHistory(prev => {
-        return prev.concat([botMessageObj]);
-      });
-    } finally {
-      setLoading(false);
     }
+    if (!reply_text || !reply_text.trim()) {
+      reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
+    }
+    let botMessageObj = {"text": reply_text, "sender": "bot", "timestamp": Date.now()};
+    setChatHistory(prev => {
+      return prev.concat([botMessageObj]);
+    });
+    let is_asking_clarification = reply_text.trim().endsWith("?");
+    if (is_asking_clarification && !awaitingClarification) {
+      setAwaitingClarification(true);
+      setOriginalQuestion(user_msg);
+    } else if (awaitingClarification) {
+      setAwaitingClarification(false);
+      setOriginalQuestion("");
+    }
+    setLoading(false);
   }
   let chatContent = null;
   if (chatHistory.length === 0) {
@@ -77,16 +91,9 @@ function Chat() {
       e.preventDefault();
       sendMessage();
     }
-  }, "placeholder": "Type your message here...", "variant": "outlined", "sx": {backgroundColor: "white", borderRadius: 2, transition: "all 0.3s ease", "& .MuiOutlinedInput-root": {"&:hover fieldset": {borderColor: "primary.main"}, "&.Mui-focused fieldset": {borderColor: "primary.main", borderWidth: "2px"}}, "&:hover": {boxShadow: "0 2px 8px rgba(99, 102, 241, 0.2)"}}}, []), __jacJsx(Button, {"variant": "contained", "color": "primary", "onClick": sendMessage, "disabled": loading || !currentMessage.trim(), "sx": {minWidth: "64px", height: "auto", background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", "&:hover": {background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", transform: "scale(1.1) rotate(5deg)", boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"}, "&:active": {transform: "scale(0.95)", boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)"}, "&:disabled": {background: "rgba(99, 102, 241, 0.5)", transform: "none"}}}, [__jacJsx(Send, {"sx": {transition: "transform 0.3s ease", ".MuiButton-root:hover &": {transform: "translateX(3px)"}}}, [])])])])]);
+  }, "placeholder": "Type your message here...", "variant": "outlined", "disabled": loading, "sx": {backgroundColor: "white", borderRadius: 2, transition: "all 0.3s ease", "& .MuiOutlinedInput-root": {"&:hover fieldset": {borderColor: "primary.main"}, "&.Mui-focused fieldset": {borderColor: "primary.main", borderWidth: "2px"}}, "&:hover": {boxShadow: "0 2px 8px rgba(99, 102, 241, 0.2)"}}}, []), __jacJsx(Button, {"variant": "contained", "color": "primary", "onClick": sendMessage, "disabled": loading || !currentMessage.trim(), "sx": {minWidth: "64px", height: "auto", background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)", boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", "&:hover": {background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)", transform: "scale(1.1) rotate(5deg)", boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"}, "&:active": {transform: "scale(0.95)", boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)"}, "&:disabled": {background: "rgba(99, 102, 241, 0.5)", transform: "none"}}}, [__jacJsx(Send, {}, [])])])])]);
 }
 function app() {
-  useEffect(() => {
-    document.body.style.margin = "0";
-    document.body.style.padding = "0";
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.margin = "0";
-    document.documentElement.style.padding = "0";
-  }, []);
   return __jacJsx(ThemeProvider, {"theme": theme}, [__jacJsx(Box, {"sx": {minHeight: "100vh", width: "100vw", margin: 0, padding: 0, background: "linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)", position: "fixed", top: 0, left: 0, overflowY: "auto", py: 4}}, [__jacJsx(Router, {}, [__jacJsx(Routes, {}, [__jacJsx(Route, {"path": "/", "element": __jacJsx(Chat, {}, [])}, [])])])])]);
 }
 export { Chat, app };
