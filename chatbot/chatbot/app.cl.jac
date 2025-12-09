@@ -63,6 +63,7 @@ def Chat() -> any {
 
         let user_msg = currentMessage.trim();
       
+        # Format conversation history for context
         let formatted_history = "";
         if (chatHistory.length > 0) {
             formatted_history = "Previous conversation:\n";
@@ -74,18 +75,21 @@ def Chat() -> any {
                 }
             }
         }
-
+        
+        # If we are awaiting clarification, original question + clarification
         let input_to_send = user_msg;
         if (awaitingClarification) {
             input_to_send = originalQuestion + " - " + user_msg;
         }
-
+        
+        # Add user message to UI
         let userMessageObj = {
             "text": user_msg,
             "sender": "user",
             "timestamp": Date.now()
         };
         
+        # Update chat history optimistically
         setChatHistory(lambda prev: any -> any { 
             return prev.concat([userMessageObj]); 
         });
@@ -93,11 +97,13 @@ def Chat() -> any {
         setCurrentMessage("");
         setLoading(true);
 
+        # Spawn chat_bot walker with user input and history
         let result = root spawn chat_bot(
             userinput = input_to_send,
             formatted_history = formatted_history
         );
 
+        # Extract response from backend
         let reply_text = "";
         if (result and result.reports and result.reports.length > 0) {
             let report = result.reports[0];
@@ -108,10 +114,12 @@ def Chat() -> any {
             }
         }
 
+        # Fall back for empty response
         if (not reply_text or not reply_text.trim()) {
             reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
         }
-
+ 
+        # Add bot response to UI
         let botMessageObj = {
             "text": reply_text,
             "sender": "bot",
@@ -124,9 +132,11 @@ def Chat() -> any {
 
         let is_asking_clarification = reply_text.trim().endsWith("?");
         
+        # Enter clarification mode if bot asked a question
         if (is_asking_clarification and not awaitingClarification) {
             setAwaitingClarification(true);
             setOriginalQuestion(user_msg);
+        # Exit clarification mode after response 
         } elif (awaitingClarification) { 
             setAwaitingClarification(false);
             setOriginalQuestion("");
