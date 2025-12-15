@@ -98,10 +98,10 @@ def Chat() -> any {
         setLoading(true);
 
         # Spawn chat_bot walker with user input and history
-        let result = root spawn chat_bot(
-            userinput = input_to_send,
-            formatted_history = formatted_history
-        );
+        let result = root spawn research_bot(
+    userinput = input_to_send,
+    formatted_history = formatted_history
+);
 
         # Extract response from backend
         let reply_text = "";
@@ -208,9 +208,14 @@ def Chat() -> any {
                                     }
                                 }}
                             >
-                                <Typography>
-                                    {msg.text}
-                                </Typography>
+                               <Typography
+                    sx={{
+                         whiteSpace: "pre-wrap",
+                         wordBreak: "break-word"
+                    }}
+                            >
+                    {msg.text}
+                               </Typography>
                             </Box>
                         </Fade>
                     </Box>

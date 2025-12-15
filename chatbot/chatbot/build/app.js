@@ -119,7 +119,7 @@ function Chat() {
             setCurrentMessage("");
             setLoading(true);
             _context.n = 3;
-            return __jacSpawn("chat_bot", "", {
+            return __jacSpawn("research_bot", "", {
               "userinput": input_to_send,
               "formatted_history": formatted_history
             });
@@ -217,7 +217,12 @@ function Chat() {
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
           }
         }
-      }, [__jacJsx(Typography, {}, [msg.text])])])])]);
+      }, [__jacJsx(Typography, {
+        "sx": {
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word"
+        }
+      }, [msg.text])])])])]);
     })]);
   }
   return __jacJsx(Container, {
