@@ -68,7 +68,7 @@ function Chat() {
   }
   function _sendMessage() {
     _sendMessage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      var user_msg, formatted_history, _iterator, _step, msg, input_to_send, userMessageObj, result, reply_text, report, botMessageObj, is_asking_clarification;
+      var user_msg, formatted_history, _iterator, _step, msg, input_to_send, userMessageObj, result, reply_data, botMessageObj, is_asking_clarification;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.n) {
           case 0:
@@ -94,8 +94,6 @@ function Chat() {
                   msg = _step.value;
                   if (msg.sender === "user") {
                     formatted_history += "User: " + msg.text + "\\n";
-                  } else {
-                    formatted_history += "Assistant: " + msg.text + "\\n";
                   }
                 }
               } catch (err) {
@@ -110,6 +108,7 @@ function Chat() {
             }
             userMessageObj = {
               "text": user_msg,
+              "type": "user_message",
               "sender": "user",
               "timestamp": Date.now()
             };
@@ -125,27 +124,26 @@ function Chat() {
             });
           case 3:
             result = _context.v;
-            reply_text = "";
+            reply_data = null;
             if (result && result.reports && result.reports.length > 0) {
-              report = result.reports[0];
-              if (Array.isArray(report)) {
-                reply_text = String(report[0] || "");
-              } else {
-                reply_text = String(report || "");
-              }
+              reply_data = result.reports[0];
             }
-            if (!reply_text || !reply_text.trim()) {
-              reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
+            if (!reply_data) {
+              reply_data = {
+                "type": "error",
+                "message": "I apologize, but I'm having trouble generating a response. Could you try rephrasing?"
+              };
             }
             botMessageObj = {
-              "text": reply_text,
+              "data": reply_data,
+              "type": reply_data.type,
               "sender": "bot",
               "timestamp": Date.now()
             };
             setChatHistory(function (prev) {
               return prev.concat([botMessageObj]);
             });
-            is_asking_clarification = reply_text.trim().endsWith("?");
+            is_asking_clarification = reply_data.type === "clarification";
             if (is_asking_clarification && !awaitingClarification) {
               setAwaitingClarification(true);
               setOriginalQuestion(user_msg);
@@ -160,6 +158,131 @@ function Chat() {
       }, _callee);
     }));
     return _sendMessage.apply(this, arguments);
+  }
+  function renderUserMessage(msg) {
+    return __jacJsx(Typography, {
+      "sx": {
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word"
+      }
+    }, [msg.text]);
+  }
+  function renderClarification(msg) {
+    return __jacJsx(Box, {}, [__jacJsx(Typography, {
+      "sx": {
+        mb: 2,
+        fontWeight: 600
+      }
+    }, ["🔍 To provide the most relevant research, I need to understand better:"]), msg.data.questions.map(function (q, idx) {
+      return __jacJsx(Typography, {
+        "key": idx,
+        "sx": {
+          mb: 1.5,
+          pl: 1
+        }
+      }, [idx + 1, ". ", q]);
+    }), __jacJsx(Typography, {
+      "sx": {
+        mt: 2,
+        fontStyle: "italic"
+      }
+    }, ["📝 Please answer these questions so I can conduct targeted research for you?"])]);
+  }
+  function renderResearchReport(msg) {
+    return __jacJsx(Box, {}, [__jacJsx(Typography, {
+      "variant": "h6",
+      "sx": {
+        mb: 2,
+        fontWeight: 700
+      }
+    }, ["🔬 Deep Research Report"]), __jacJsx(Typography, {
+      "variant": "subtitle2",
+      "sx": {
+        mb: 2,
+        color: "text.secondary"
+      }
+    }, ["Topic: ", msg.data.topic]), __jacJsx(Typography, {
+      "variant": "subtitle1",
+      "sx": {
+        mb: 1,
+        fontWeight: 600
+      }
+    }, ["📊 Executive Summary"]), __jacJsx(Typography, {
+      "sx": {
+        mb: 3,
+        whiteSpace: "pre-wrap"
+      }
+    }, [msg.data.summary]), __jacJsx(Typography, {
+      "variant": "subtitle1",
+      "sx": {
+        mb: 1,
+        fontWeight: 600
+      }
+    }, ["🔍 Key Findings"]), msg.data.findings.map(function (f, idx) {
+      return __jacJsx(Typography, {
+        "key": idx,
+        "sx": {
+          mb: 1.5,
+          pl: 2
+        }
+      }, ["• ", f]);
+    }), msg.data.sections.map(function (section, idx) {
+      return __jacJsx(Box, {
+        "key": idx,
+        "sx": {
+          mt: 3
+        }
+      }, [__jacJsx(Typography, {
+        "variant": "subtitle1",
+        "sx": {
+          mb: 1,
+          fontWeight: 600
+        }
+      }, ["📈 ", section.title]), __jacJsx(Typography, {
+        "sx": {
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.7
+        }
+      }, [section.content])]);
+    }), __jacJsx(Box, {
+      "sx": {
+        mt: 3,
+        p: 2,
+        bgcolor: "grey.100",
+        borderRadius: 2
+      }
+    }, [__jacJsx(Typography, {
+      "variant": "subtitle2",
+      "sx": {
+        fontWeight: 600
+      }
+    }, ["📚 Research Summary"]), __jacJsx(Typography, {
+      "variant": "body2"
+    }, ["• Total searches conducted: ", msg.data.metadata.search_count]), __jacJsx(Typography, {
+      "variant": "body2"
+    }, ["• Deep research with multiple sources per topic"]), __jacJsx(Typography, {
+      "variant": "body2"
+    }, ["• Personalized to your specific needs"])])]);
+  }
+  function renderError(msg) {
+    return __jacJsx(Typography, {
+      "sx": {
+        color: "error.main"
+      }
+    }, [msg.data.message]);
+  }
+  function renderMessage(msg) {
+    if (msg.sender === "user") {
+      return renderUserMessage(msg);
+    } else if (msg.type === "clarification") {
+      return renderClarification(msg);
+    } else if (msg.type === "research_report") {
+      return renderResearchReport(msg);
+    } else if (msg.type === "error") {
+      return renderError(msg);
+    } else {
+      return __jacJsx(Typography, {}, ["Unsupported message type"]);
+    }
   }
   var chatContent = null;
   if (chatHistory.length === 0) {
@@ -217,12 +340,7 @@ function Chat() {
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"
           }
         }
-      }, [__jacJsx(Typography, {
-        "sx": {
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word"
-        }
-      }, [msg.text])])])])]);
+      }, [renderMessage(msg)])])])]);
     })]);
   }
   return __jacJsx(Container, {

@@ -25,7 +25,6 @@ def web_search(query: str) -> str {
     return "\n\n".join(snippets) if snippets else "No results found.";
 }
 
-
 # PHASE 1: CLARIFICATION
 """Generate 3-5 clarifying questions about the research topic.
 Format as Q1:, Q2:, Q3:, etc. Keep questions specific and focused."""
@@ -105,11 +104,9 @@ walker research_bot {
             search_num = 0;
             
             for question in questions {
-                # Generate search variations
                 variations_text = generate_search_variations(question);
                 variation_lines = variations_text.split("\n");
                 
-                # Parse variations
                 search_queries = [question];
                 for vline in variation_lines {
                     vline_stripped = vline.strip();
@@ -122,7 +119,6 @@ walker research_bot {
                     }
                 }
                 
-                # Execute all variations
                 combined_results = "";
                 for query in search_queries {
                     search_num = search_num + 1;
@@ -130,7 +126,6 @@ walker research_bot {
                     combined_results = combined_results + search_result + "\n\n";
                 }
                 
-                # Store combined findings
                 finding = {
                     "num": len(all_findings) + 1,
                     "question": question,
@@ -141,8 +136,6 @@ walker research_bot {
             }
       
             # PHASE 3: DEEP SYNTHESIS
-            
-            # Combine all search data
             combined_data = "Research Topic: " + main_topic + "\n";
             combined_data = combined_data + "User Context: " + user_answers + "\n\n";
             
@@ -152,65 +145,97 @@ walker research_bot {
                 combined_data = combined_data + finding["content"] + "\n\n";
             }
             
-            # Synthesize findings
             synthesis = synthesize_research(main_topic, combined_data);
             
             # PHASE 4: COMPREHENSIVE REPORT
-            
             report_text = generate_final_report(main_topic, synthesis, search_num);
-            
-            # Parse and format report (remove any ** symbols)
             report_text = report_text.replace("**", "");
-            report_lines = report_text.split("\n");
-            formatted_report = "🔬 Deep Research Report\n\n";
-            formatted_report = formatted_report + "Topic: " + main_topic + "\n\n";
             
-            current_section = "";
+            # Parse report into structured data
+            report_lines = report_text.split("\n");
+            summary_text = "";
+            findings_list = [];
+            sections_list = [];
+            current_section_title = "";
+            current_section_content = "";
             in_findings = False;
             
             for line in report_lines {
                 line_stripped = line.strip();
                 
                 if line_stripped.startswith("SUMMARY:") {
-                    formatted_report = formatted_report + "📊 Executive Summary\n\n";
-                    formatted_report = formatted_report + line_stripped.replace("SUMMARY:", "").strip() + "\n\n";
+                    summary_text = line_stripped.replace("SUMMARY:", "").strip();
                 } elif line_stripped.startswith("FINDINGS:") {
-                    formatted_report = formatted_report + "🔍 Key Findings\n\n";
                     in_findings = True;
                 } elif line_stripped.startswith("SECTION:") {
-                    in_findings = False;
-                    if current_section {
-                        formatted_report = formatted_report + "\n";
+                    if current_section_title and current_section_content {
+                        sections_list.append({
+                            "title": current_section_title,
+                            "content": current_section_content.strip()
+                        });
                     }
-                    section_name = line_stripped.replace("SECTION:", "").strip();
-                    formatted_report = formatted_report + "📈 " + section_name + "\n\n";
-                    current_section = section_name;
+                    in_findings = False;
+                    current_section_title = line_stripped.replace("SECTION:", "").strip();
+                    current_section_content = "";
                 } elif line_stripped.startswith("-") and in_findings {
-                    formatted_report = formatted_report + "• " + line_stripped.replace("-", "").strip() + "\n\n";
-                } elif line_stripped.startswith("•") {
-                    formatted_report = formatted_report + line_stripped + "\n\n";
-                } elif len(line_stripped) > 0 {
-                    formatted_report = formatted_report + line_stripped + "\n\n";
+                    findings_list.append(line_stripped.replace("-", "").strip());
+                } elif len(line_stripped) > 0 and not in_findings and current_section_title {
+                    current_section_content = current_section_content + line_stripped + "\n\n";
                 }
             }
-
-            formatted_report = formatted_report + "📚 Research Summary\n";
-            formatted_report = formatted_report + "• Total searches conducted: " + str(search_num) + "\n";
-            formatted_report = formatted_report + "• Deep research with multiple sources per topic\n";
-            formatted_report = formatted_report + "• Personalized to your specific needs\n";
             
-            report formatted_report;
+            if current_section_title and current_section_content {
+                sections_list.append({
+                    "title": current_section_title,
+                    "content": current_section_content.strip()
+                });
+            }
+            
+            # Return structured data
+            result = {
+                "type": "research_report",
+                "topic": main_topic,
+                "summary": summary_text,
+                "findings": findings_list,
+                "sections": sections_list,
+                "metadata": {
+                    "search_count": search_num,
+                    "question_count": len(questions)
+                }
+            };
+            
+            report result;
             
         } else {
             # PHASE 1: CLARIFICATION
-            
             clarification_qs = generate_clarification_questions(self.userinput);
             
-            response = "🔍 To provide the most relevant research, I need to understand better:\n\n";
-            response = response + clarification_qs + "\n\n";
-            response = response + "📝 Please answer these questions so I can conduct targeted research for you?";
+            # Parse questions into list
+            question_lines = clarification_qs.split("\n");
+            questions_list = [];
             
-            report response;
+            for line in question_lines {
+                line_stripped = line.strip();
+                if line_stripped.startswith("Q1:") {
+                    questions_list.append(line_stripped.replace("Q1:", "").strip());
+                } elif line_stripped.startswith("Q2:") {
+                    questions_list.append(line_stripped.replace("Q2:", "").strip());
+                } elif line_stripped.startswith("Q3:") {
+                    questions_list.append(line_stripped.replace("Q3:", "").strip());
+                } elif line_stripped.startswith("Q4:") {
+                    questions_list.append(line_stripped.replace("Q4:", "").strip());
+                } elif line_stripped.startswith("Q5:") {
+                    questions_list.append(line_stripped.replace("Q5:", "").strip());
+                }
+            }
+            
+            # Return structured data
+            result = {
+                "type": "clarification",
+                "questions": questions_list
+            };
+            
+            report result;
         }
     }
 }

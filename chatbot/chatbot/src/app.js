@@ -24,8 +24,6 @@ function Chat() {
       for (const msg of chatHistory) {
         if (msg.sender === "user") {
           formatted_history += "User: " + msg.text + "\\n";
-        } else {
-          formatted_history += "Assistant: " + msg.text + "\\n";
         }
       }
     }
@@ -33,30 +31,25 @@ function Chat() {
     if (awaitingClarification) {
       input_to_send = originalQuestion + " - " + user_msg;
     }
-    let userMessageObj = {"text": user_msg, "sender": "user", "timestamp": Date.now()};
+    let userMessageObj = {"text": user_msg, "type": "user_message", "sender": "user", "timestamp": Date.now()};
     setChatHistory(prev => {
       return prev.concat([userMessageObj]);
     });
     setCurrentMessage("");
     setLoading(true);
     let result = await __jacSpawn("research_bot", "", {"userinput": input_to_send, "formatted_history": formatted_history});
-    let reply_text = "";
+    let reply_data = null;
     if (result && result.reports && result.reports.length > 0) {
-      let report = result.reports[0];
-      if (Array.isArray(report)) {
-        reply_text = String(report[0] || "");
-      } else {
-        reply_text = String(report || "");
-      }
+      reply_data = result.reports[0];
     }
-    if (!reply_text || !reply_text.trim()) {
-      reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
+    if (!reply_data) {
+      reply_data = {"type": "error", "message": "I apologize, but I'm having trouble generating a response. Could you try rephrasing?"};
     }
-    let botMessageObj = {"text": reply_text, "sender": "bot", "timestamp": Date.now()};
+    let botMessageObj = {"data": reply_data, "type": reply_data.type, "sender": "bot", "timestamp": Date.now()};
     setChatHistory(prev => {
       return prev.concat([botMessageObj]);
     });
-    let is_asking_clarification = reply_text.trim().endsWith("?");
+    let is_asking_clarification = reply_data.type === "clarification";
     if (is_asking_clarification && !awaitingClarification) {
       setAwaitingClarification(true);
       setOriginalQuestion(user_msg);
@@ -65,6 +58,37 @@ function Chat() {
       setOriginalQuestion("");
     }
     setLoading(false);
+  }
+  function renderUserMessage(msg) {
+    return __jacJsx(Typography, {"sx": {whiteSpace: "pre-wrap", wordBreak: "break-word"}}, [msg.text]);
+  }
+  function renderClarification(msg) {
+    return __jacJsx(Box, {}, [__jacJsx(Typography, {"sx": {mb: 2, fontWeight: 600}}, ["🔍 To provide the most relevant research, I need to understand better:"]), msg.data.questions.map((q, idx) => {
+      return __jacJsx(Typography, {"key": idx, "sx": {mb: 1.5, pl: 1}}, [idx + 1, ". ", q]);
+    }), __jacJsx(Typography, {"sx": {mt: 2, fontStyle: "italic"}}, ["📝 Please answer these questions so I can conduct targeted research for you?"])]);
+  }
+  function renderResearchReport(msg) {
+    return __jacJsx(Box, {}, [__jacJsx(Typography, {"variant": "h6", "sx": {mb: 2, fontWeight: 700}}, ["🔬 Deep Research Report"]), __jacJsx(Typography, {"variant": "subtitle2", "sx": {mb: 2, color: "text.secondary"}}, ["Topic: ", msg.data.topic]), __jacJsx(Typography, {"variant": "subtitle1", "sx": {mb: 1, fontWeight: 600}}, ["📊 Executive Summary"]), __jacJsx(Typography, {"sx": {mb: 3, whiteSpace: "pre-wrap"}}, [msg.data.summary]), __jacJsx(Typography, {"variant": "subtitle1", "sx": {mb: 1, fontWeight: 600}}, ["🔍 Key Findings"]), msg.data.findings.map((f, idx) => {
+      return __jacJsx(Typography, {"key": idx, "sx": {mb: 1.5, pl: 2}}, ["• ", f]);
+    }), msg.data.sections.map((section, idx) => {
+      return __jacJsx(Box, {"key": idx, "sx": {mt: 3}}, [__jacJsx(Typography, {"variant": "subtitle1", "sx": {mb: 1, fontWeight: 600}}, ["📈 ", section.title]), __jacJsx(Typography, {"sx": {whiteSpace: "pre-wrap", lineHeight: 1.7}}, [section.content])]);
+    }), __jacJsx(Box, {"sx": {mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 2}}, [__jacJsx(Typography, {"variant": "subtitle2", "sx": {fontWeight: 600}}, ["📚 Research Summary"]), __jacJsx(Typography, {"variant": "body2"}, ["• Total searches conducted: ", msg.data.metadata.search_count]), __jacJsx(Typography, {"variant": "body2"}, ["• Deep research with multiple sources per topic"]), __jacJsx(Typography, {"variant": "body2"}, ["• Personalized to your specific needs"])])]);
+  }
+  function renderError(msg) {
+    return __jacJsx(Typography, {"sx": {color: "error.main"}}, [msg.data.message]);
+  }
+  function renderMessage(msg) {
+    if (msg.sender === "user") {
+      return renderUserMessage(msg);
+    } else if (msg.type === "clarification") {
+      return renderClarification(msg);
+    } else if (msg.type === "research_report") {
+      return renderResearchReport(msg);
+    } else if (msg.type === "error") {
+      return renderError(msg);
+    } else {
+      return __jacJsx(Typography, {}, ["Unsupported message type"]);
+    }
   }
   let chatContent = null;
   if (chatHistory.length === 0) {
@@ -81,7 +105,7 @@ function Chat() {
         textColor = "white";
         slideDirection = "left";
       }
-      return __jacJsx(Slide, {"direction": slideDirection, "in": true, "timeout": 500, "key": msg.timestamp}, [__jacJsx(Box, {"sx": {display: "flex", justifyContent: alignment}}, [__jacJsx(Fade, {"in": true, "timeout": 800}, [__jacJsx(Box, {"sx": {maxWidth: "70%", padding: 1.5, borderRadius: 2, backgroundColor: bgColor, color: textColor, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", transition: "all 0.3s ease", "&:hover": {transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"}}}, [__jacJsx(Typography, {"sx": {whiteSpace: "pre-wrap", wordBreak: "break-word"}}, [msg.text])])])])]);
+      return __jacJsx(Slide, {"direction": slideDirection, "in": true, "timeout": 500, "key": msg.timestamp}, [__jacJsx(Box, {"sx": {display: "flex", justifyContent: alignment}}, [__jacJsx(Fade, {"in": true, "timeout": 800}, [__jacJsx(Box, {"sx": {maxWidth: "70%", padding: 1.5, borderRadius: 2, backgroundColor: bgColor, color: textColor, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)", transition: "all 0.3s ease", "&:hover": {transform: "translateY(-2px)", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)"}}}, [renderMessage(msg)])])])]);
     })]);
   }
   return __jacJsx(Container, {"maxWidth": "md", "sx": {py: 3}}, [__jacJsx(Fade, {"in": true, "timeout": 1000}, [__jacJsx(Box, {"sx": {display: "flex", alignItems: "center", gap: 2, mb: 3, background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(10px)", padding: 2, borderRadius: 3, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)"}}, [__jacJsx(Avatar, {"sx": {bgcolor: "primary.main", width: 56, height: 56, boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)"}}, [__jacJsx(SmartToy, {"sx": {fontSize: 32}}, [])]), __jacJsx(Box, {}, [__jacJsx(Typography, {"variant": "h4", "component": "h1", "sx": {fontWeight: 700, color: "primary.main", textShadow: "0 2px 4px rgba(0,0,0,0.1)"}}, ["AI Chatbot"]), __jacJsx(Typography, {"variant": "body2", "sx": {color: "#64748b", fontWeight: 500}}, ["Ask me anything..."])])])]), __jacJsx(Fade, {"in": true, "timeout": 1200}, [__jacJsx(Paper, {"elevation": 0, "sx": {height: "400px", overflowY: "auto", p: 3, mb: 2, position: "relative", background: "rgba(255, 255, 255, 0.85)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.15)", border: "3px solid transparent", borderRadius: "12px", backgroundImage: "linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), linear-gradient(135deg, #6366f1, #ec4899, #8b5cf6)", backgroundOrigin: "border-box", backgroundClip: "padding-box, border-box"}}, [__jacJsx(Box, {"sx": {position: "relative", zIndex: 1}}, [chatContent])])]), __jacJsx(Fade, {"in": true, "timeout": 1400}, [__jacJsx(Box, {"sx": {display: "flex", gap: 1, background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(10px)", padding: 2, borderRadius: 3, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)"}}, [__jacJsx(TextField, {"fullWidth": true, "multiline": true, "rows": 3, "value": currentMessage, "onChange": e => {
