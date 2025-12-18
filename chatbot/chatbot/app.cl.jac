@@ -53,7 +53,6 @@ def Chat() -> any {
     let [currentMessage, setCurrentMessage] = useState("");
     let [chatHistory, setChatHistory] = useState([]);
     let [loading, setLoading] = useState(false);
-
     let [awaitingClarification, setAwaitingClarification] = useState(false);
     let [originalQuestion, setOriginalQuestion] = useState("");
 
@@ -63,33 +62,28 @@ def Chat() -> any {
 
         let user_msg = currentMessage.trim();
       
-        # Format conversation history for context
         let formatted_history = "";
         if (chatHistory.length > 0) {
             formatted_history = "Previous conversation:\n";
             for msg in chatHistory {
                 if (msg.sender == "user") {
                     formatted_history += "User: " + msg.text + "\n";
-                } else {
-                    formatted_history += "Assistant: " + msg.text + "\n";
                 }
             }
         }
         
-        # If we are awaiting clarification, original question + clarification
         let input_to_send = user_msg;
         if (awaitingClarification) {
             input_to_send = originalQuestion + " - " + user_msg;
         }
         
-        # Add user message to UI
         let userMessageObj = {
             "text": user_msg,
+            "type": "user_message",
             "sender": "user",
             "timestamp": Date.now()
         };
         
-        # Update chat history optimistically
         setChatHistory(lambda prev: any -> any { 
             return prev.concat([userMessageObj]); 
         });
@@ -97,31 +91,27 @@ def Chat() -> any {
         setCurrentMessage("");
         setLoading(true);
 
-        # Spawn chat_bot walker with user input and history
         let result = root spawn research_bot(
-    userinput = input_to_send,
-    formatted_history = formatted_history
-);
+            userinput = input_to_send,
+            formatted_history = formatted_history
+        );
 
-        # Extract response from backend
-        let reply_text = "";
+        # Extract response data as object
+        let reply_data = None;
         if (result and result.reports and result.reports.length > 0) {
-            let report = result.reports[0];
-            if (Array.isArray(report)) {
-                reply_text = String(report[0] or "");
-            } else {
-                reply_text = String(report or "");
-            }
+            reply_data = result.reports[0];
         }
 
-        # Fall back for empty response
-        if (not reply_text or not reply_text.trim()) {
-            reply_text = "I apologize, but I'm having trouble generating a response. Could you try rephrasing?";
+        if (not reply_data) {
+            reply_data = {
+                "type": "error",
+                "message": "I apologize, but I'm having trouble generating a response. Could you try rephrasing?"
+            };
         }
  
-        # Add bot response to UI
         let botMessageObj = {
-            "text": reply_text,
+            "data": reply_data,
+            "type": reply_data.type,
             "sender": "bot",
             "timestamp": Date.now()
         };
@@ -130,19 +120,119 @@ def Chat() -> any {
             return prev.concat([botMessageObj]); 
         });
 
-        let is_asking_clarification = reply_text.trim().endsWith("?");
+        # Detect clarification based on type
+        let is_asking_clarification = (reply_data.type == "clarification");
         
-        # Enter clarification mode if bot asked a question
         if (is_asking_clarification and not awaitingClarification) {
             setAwaitingClarification(true);
             setOriginalQuestion(user_msg);
-        # Exit clarification mode after response 
         } elif (awaitingClarification) { 
             setAwaitingClarification(false);
             setOriginalQuestion("");
         }
 
         setLoading(false);
+    }
+
+    # Render user message
+    def renderUserMessage(msg: any) -> any {
+        return <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {msg.text}
+        </Typography>;
+    }
+
+    # Render clarification questions
+    def renderClarification(msg: any) -> any {
+        return <Box>
+            <Typography sx={{ mb: 2, fontWeight: 600 }}>
+                🔍 To provide the most relevant research, I need to understand better:
+            </Typography>
+            {msg.data.questions.map(lambda q: any, idx: number -> any {
+                return <Typography key={idx} sx={{ mb: 1.5, pl: 1 }}>
+                    {idx + 1}. {q}
+                </Typography>;
+            })}
+            <Typography sx={{ mt: 2, fontStyle: "italic" }}>
+                📝 Please answer these questions so I can conduct targeted research for you?
+            </Typography>
+        </Box>;
+    }
+
+    # Render research report
+    def renderResearchReport(msg: any) -> any {
+        return <Box>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+                🔬 Deep Research Report
+            </Typography>
+            
+            <Typography variant="subtitle2" sx={{ mb: 2, color: "text.secondary" }}>
+                Topic: {msg.data.topic}
+            </Typography>
+            
+            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                📊 Executive Summary
+            </Typography>
+            <Typography sx={{ mb: 3, whiteSpace: "pre-wrap" }}>
+                {msg.data.summary}
+            </Typography>
+            
+            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                🔍 Key Findings
+            </Typography>
+            {msg.data.findings.map(lambda f: any, idx: number -> any {
+                return <Typography key={idx} sx={{ mb: 1.5, pl: 2 }}>
+                    • {f}
+                </Typography>;
+            })}
+            
+            {msg.data.sections.map(lambda section: any, idx: number -> any {
+                return <Box key={idx} sx={{ mt: 3 }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
+                        📈 {section.title}
+                    </Typography>
+                    <Typography sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
+                        {section.content}
+                    </Typography>
+                </Box>;
+            })}
+            
+            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    📚 Research Summary
+                </Typography>
+                <Typography variant="body2">
+                    • Total searches conducted: {msg.data.metadata.search_count}
+                </Typography>
+                <Typography variant="body2">
+                    • Deep research with multiple sources per topic
+                </Typography>
+                <Typography variant="body2">
+                    • Personalized to your specific needs
+                </Typography>
+            </Box>
+        </Box>;
+    }
+
+    # Render error message
+    def renderError(msg: any) -> any {
+        return <Typography sx={{ color: "error.main" }}>
+            {msg.data.message}
+        </Typography>;
+    }
+
+    # Main render function
+    def renderMessage(msg: any) -> any {
+        if (msg.sender == "user") {
+            return renderUserMessage(msg);
+        } elif (msg.type == "clarification") {
+            return renderClarification(msg);
+        } elif (msg.type == "research_report") {
+            return renderResearchReport(msg);
+        } elif (msg.type == "error") {
+            return renderError(msg);
+        } else {
+            return <Typography>Unsupported message type</Typography>;
+        }
     }
 
     let chatContent = None;
@@ -208,14 +298,7 @@ def Chat() -> any {
                                     }
                                 }}
                             >
-                               <Typography
-                    sx={{
-                         whiteSpace: "pre-wrap",
-                         wordBreak: "break-word"
-                    }}
-                            >
-                    {msg.text}
-                               </Typography>
+                                {renderMessage(msg)}
                             </Box>
                         </Fade>
                     </Box>
