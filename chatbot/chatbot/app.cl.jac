@@ -143,11 +143,53 @@ def Chat() -> any {
 
     # Render clarification questions
     def renderClarification(msg: any) -> any {
+        console.log("=== CLARIFICATION DEBUG ===");
+        console.log("msg.data:", msg.data);
+        
+        # Parse questions from raw text
+        let raw_text = msg.data.text;
+        console.log("raw_text:", raw_text);
+        
+        let lines = raw_text.split("\n");
+        console.log("lines:", lines);
+        
+        let questions_list = [];
+        
+        # Extract questions from Q1:, Q2:, Q3:, etc. format
+        for line in lines {
+            let line_stripped = line.trim();
+            
+            if line_stripped.indexOf("Q1:") == 0 {
+                let q = line_stripped.replace("Q1:", "").trim();
+                console.log("Found Q1:", q);
+                questions_list.append(q);
+            } elif line_stripped.indexOf("Q2:") == 0 {
+                let q = line_stripped.replace("Q2:", "").trim();
+                console.log("Found Q2:", q);
+                questions_list.append(q);
+            } elif line_stripped.indexOf("Q3:") == 0 {
+                let q = line_stripped.replace("Q3:", "").trim();
+                console.log("Found Q3:", q);
+                questions_list.append(q);
+            } elif line_stripped.indexOf("Q4:") == 0 {
+                let q = line_stripped.replace("Q4:", "").trim();
+                console.log("Found Q4:", q);
+                questions_list.append(q);
+            } elif line_stripped.indexOf("Q5:") == 0 {
+                let q = line_stripped.replace("Q5:", "").trim();
+                console.log("Found Q5:", q);
+                questions_list.append(q);
+            }
+        }
+        
+        console.log("Final questions_list:", questions_list);
+        
+        # Render the parsed questions
         return <Box>
             <Typography sx={{ mb: 2, fontWeight: 600 }}>
                 🔍 To provide the most relevant research, I need to understand better:
             </Typography>
-            {msg.data.questions.map(lambda q: any, idx: number -> any {
+            {questions_list.map(lambda q: any, idx: number -> any {
                 return <Typography key={idx} sx={{ mb: 1.5, pl: 1 }}>
                     {idx + 1}. {q}
                 </Typography>;
@@ -158,34 +200,104 @@ def Chat() -> any {
         </Box>;
     }
 
-    # Render research report
-    def renderResearchReport(msg: any) -> any {
+    # Render markdown research report
+    def renderMarkdownReport(msg: any) -> any {
+        console.log("=== MARKDOWN REPORT DEBUG ===");
+        console.log("msg.data:", msg.data);
+        
+        # Get raw markdown text from backend
+        let markdown = msg.data.markdown;
+        let topic = msg.data.topic;
+        let search_count = msg.data.metadata.search_count;
+        
+        console.log("markdown:", markdown);
+        console.log("topic:", topic);
+        console.log("search_count:", search_count);
+        
+        # Parse markdown into sections by splitting on ## headers
+        let sections = markdown.split("## ");
+        console.log("sections length:", sections.length);
+        
+        # Initialize parsed data
+        let executive_summary = "";
+        let key_findings = [];
+        let content_sections = [];
+        
+        # Process each section (skip first which is title with single #)
+        for i in range(1, sections.length) {
+            let section = sections[i];
+            let section_lines = section.split("\n");
+            let section_title = section_lines[0].trim();
+            
+            # Get content (everything after first line)
+            let content_lines = [];
+            for j in range(1, section_lines.length) {
+                content_lines.append(section_lines[j]);
+            }
+            let section_content = content_lines.join("\n").trim();
+            
+            console.log("Processing section:", section_title);
+            
+            # Parse Executive Summary
+            if section_title.indexOf("Executive Summary") != -1 {
+                executive_summary = section_content;
+                console.log("Found Executive Summary");
+            }
+            # Parse Key Findings (extract bullet points)
+            elif section_title.indexOf("Key Findings") != -1 {
+                console.log("Found Key Findings");
+                let finding_lines = section_content.split("\n");
+                for finding_line in finding_lines {
+                    let trimmed = finding_line.trim();
+                    if trimmed.indexOf("- ") == 0 {
+                        key_findings.append(trimmed.replace("- ", "").trim());
+                    }
+                }
+                console.log("key_findings:", key_findings);
+            }
+            # Parse other content sections (but skip Research Summary after ---)
+            elif section_title.length > 0 {
+                if section_content.indexOf("**Research Summary**") == -1 and section_content.indexOf("---") == -1 {
+                    content_sections.append({
+                        "title": section_title,
+                        "content": section_content
+                    });
+                    console.log("Added content section:", section_title);
+                }
+            }
+        }
+        
+        console.log("Final executive_summary:", executive_summary);
+        console.log("Final key_findings:", key_findings);
+        console.log("Final content_sections:", content_sections);
+        
+        # Render the parsed report
         return <Box>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
                 🔬 Deep Research Report
             </Typography>
             
             <Typography variant="subtitle2" sx={{ mb: 2, color: "text.secondary" }}>
-                Topic: {msg.data.topic}
+                Topic: {topic}
             </Typography>
             
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                 📊 Executive Summary
             </Typography>
             <Typography sx={{ mb: 3, whiteSpace: "pre-wrap" }}>
-                {msg.data.summary}
+                {executive_summary}
             </Typography>
             
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                 🔍 Key Findings
             </Typography>
-            {msg.data.findings.map(lambda f: any, idx: number -> any {
+            {key_findings.map(lambda f: any, idx: number -> any {
                 return <Typography key={idx} sx={{ mb: 1.5, pl: 2 }}>
                     • {f}
                 </Typography>;
             })}
             
-            {msg.data.sections.map(lambda section: any, idx: number -> any {
+            {content_sections.map(lambda section: any, idx: number -> any {
                 return <Box key={idx} sx={{ mt: 3 }}>
                     <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                         📈 {section.title}
@@ -201,7 +313,7 @@ def Chat() -> any {
                     📚 Research Summary
                 </Typography>
                 <Typography variant="body2">
-                    • Total searches conducted: {msg.data.metadata.search_count}
+                    • Total searches conducted: {search_count}
                 </Typography>
                 <Typography variant="body2">
                     • Deep research with multiple sources per topic
@@ -227,7 +339,7 @@ def Chat() -> any {
         } elif (msg.type == "clarification") {
             return renderClarification(msg);
         } elif (msg.type == "research_report") {
-            return renderResearchReport(msg);
+            return renderMarkdownReport(msg);
         } elif (msg.type == "error") {
             return renderError(msg);
         } else {
@@ -334,7 +446,7 @@ def Chat() -> any {
                         color: "primary.main",
                         textShadow: "0 2px 4px rgba(0,0,0,0.1)"
                     }}>
-                        AI Chatbot
+                        Deep Research Bot
                     </Typography>
                     <Typography variant="body2" sx={{ 
                         color: "#64748b",
