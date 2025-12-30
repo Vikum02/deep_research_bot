@@ -75,23 +75,23 @@ function Chat() {
       if (line_stripped.indexOf("Q1:") === 0) {
         let q = line_stripped.replace("Q1:", "").trim();
         console.log("Found Q1:", q);
-        questions_list.append(q);
+        questions_list.push(q);
       } else if (line_stripped.indexOf("Q2:") === 0) {
         q = line_stripped.replace("Q2:", "").trim();
         console.log("Found Q2:", q);
-        questions_list.append(q);
+        questions_list.push(q);
       } else if (line_stripped.indexOf("Q3:") === 0) {
         q = line_stripped.replace("Q3:", "").trim();
         console.log("Found Q3:", q);
-        questions_list.append(q);
+        questions_list.push(q);
       } else if (line_stripped.indexOf("Q4:") === 0) {
         q = line_stripped.replace("Q4:", "").trim();
         console.log("Found Q4:", q);
-        questions_list.append(q);
+        questions_list.push(q);
       } else if (line_stripped.indexOf("Q5:") === 0) {
         q = line_stripped.replace("Q5:", "").trim();
         console.log("Found Q5:", q);
-        questions_list.append(q);
+        questions_list.push(q);
       }
     }
     console.log("Final questions_list:", questions_list);
@@ -113,15 +113,12 @@ function Chat() {
     let executive_summary = "";
     let key_findings = [];
     let content_sections = [];
-    for (const i of range(1, sections.length)) {
+    let i = 1;
+    while (i < sections.length) {
       let section = sections[i];
       let section_lines = section.split("\\n");
       let section_title = section_lines[0].trim();
-      let content_lines = [];
-      for (const j of range(1, section_lines.length)) {
-        content_lines.append(section_lines[j]);
-      }
-      let section_content = content_lines.join("\\n").trim();
+      let section_content = section_lines.slice(1).join("\\n").trim();
       console.log("Processing section:", section_title);
       if (section_title.indexOf("Executive Summary") !== -1) {
         executive_summary = section_content;
@@ -132,16 +129,17 @@ function Chat() {
         for (const finding_line of finding_lines) {
           let trimmed = finding_line.trim();
           if (trimmed.indexOf("- ") === 0) {
-            key_findings.append(trimmed.replace("- ", "").trim());
+            key_findings.push(trimmed.replace("- ", "").trim());
           }
         }
         console.log("key_findings:", key_findings);
       } else if (section_title.length > 0) {
         if (section_content.indexOf("**Research Summary**") === -1 && section_content.indexOf("---") === -1) {
-          content_sections.append({"title": section_title, "content": section_content});
+          content_sections.push({"title": section_title, "content": section_content});
           console.log("Added content section:", section_title);
         }
       }
+      i = i + 1;
     }
     console.log("Final executive_summary:", executive_summary);
     console.log("Final key_findings:", key_findings);

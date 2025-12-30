@@ -68,7 +68,7 @@ function Chat() {
   }
   function _sendMessage() {
     _sendMessage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      var user_msg, formatted_history, _iterator5, _step5, msg, input_to_send, userMessageObj, result, reply_data, botMessageObj, is_asking_clarification;
+      var user_msg, formatted_history, _iterator3, _step3, msg, input_to_send, userMessageObj, result, reply_data, botMessageObj, is_asking_clarification;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.n) {
           case 0:
@@ -88,18 +88,18 @@ function Chat() {
             formatted_history = "";
             if (chatHistory.length > 0) {
               formatted_history = "Previous conversation:\\n";
-              _iterator5 = _createForOfIteratorHelper(chatHistory);
+              _iterator3 = _createForOfIteratorHelper(chatHistory);
               try {
-                for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
-                  msg = _step5.value;
+                for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
+                  msg = _step3.value;
                   if (msg.sender === "user") {
                     formatted_history += "User: " + msg.text + "\\n";
                   }
                 }
               } catch (err) {
-                _iterator5.e(err);
+                _iterator3.e(err);
               } finally {
-                _iterator5.f();
+                _iterator3.f();
               }
             }
             input_to_send = user_msg;
@@ -184,23 +184,23 @@ function Chat() {
         if (line_stripped.indexOf("Q1:") === 0) {
           var _q = line_stripped.replace("Q1:", "").trim();
           console.log("Found Q1:", _q);
-          questions_list.append(_q);
+          questions_list.push(_q);
         } else if (line_stripped.indexOf("Q2:") === 0) {
           q = line_stripped.replace("Q2:", "").trim();
           console.log("Found Q2:", q);
-          questions_list.append(q);
+          questions_list.push(q);
         } else if (line_stripped.indexOf("Q3:") === 0) {
           q = line_stripped.replace("Q3:", "").trim();
           console.log("Found Q3:", q);
-          questions_list.append(q);
+          questions_list.push(q);
         } else if (line_stripped.indexOf("Q4:") === 0) {
           q = line_stripped.replace("Q4:", "").trim();
           console.log("Found Q4:", q);
-          questions_list.append(q);
+          questions_list.push(q);
         } else if (line_stripped.indexOf("Q5:") === 0) {
           q = line_stripped.replace("Q5:", "").trim();
           console.log("Found Q5:", q);
-          questions_list.append(q);
+          questions_list.push(q);
         }
       }
     } catch (err) {
@@ -243,65 +243,45 @@ function Chat() {
     var executive_summary = "";
     var key_findings = [];
     var content_sections = [];
-    var _iterator2 = _createForOfIteratorHelper(range(1, sections.length)),
-      _step2;
-    try {
-      for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-        var i = _step2.value;
-        var section = sections[i];
-        var section_lines = section.split("\\n");
-        var section_title = section_lines[0].trim();
-        var content_lines = [];
-        var _iterator3 = _createForOfIteratorHelper(range(1, section_lines.length)),
-          _step3;
+    var i = 1;
+    while (i < sections.length) {
+      var section = sections[i];
+      var section_lines = section.split("\\n");
+      var section_title = section_lines[0].trim();
+      var section_content = section_lines.slice(1).join("\\n").trim();
+      console.log("Processing section:", section_title);
+      if (section_title.indexOf("Executive Summary") !== -1) {
+        executive_summary = section_content;
+        console.log("Found Executive Summary");
+      } else if (section_title.indexOf("Key Findings") !== -1) {
+        console.log("Found Key Findings");
+        var finding_lines = section_content.split("\\n");
+        var _iterator2 = _createForOfIteratorHelper(finding_lines),
+          _step2;
         try {
-          for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-            var j = _step3.value;
-            content_lines.append(section_lines[j]);
+          for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+            var finding_line = _step2.value;
+            var trimmed = finding_line.trim();
+            if (trimmed.indexOf("- ") === 0) {
+              key_findings.push(trimmed.replace("- ", "").trim());
+            }
           }
         } catch (err) {
-          _iterator3.e(err);
+          _iterator2.e(err);
         } finally {
-          _iterator3.f();
+          _iterator2.f();
         }
-        var section_content = content_lines.join("\\n").trim();
-        console.log("Processing section:", section_title);
-        if (section_title.indexOf("Executive Summary") !== -1) {
-          executive_summary = section_content;
-          console.log("Found Executive Summary");
-        } else if (section_title.indexOf("Key Findings") !== -1) {
-          console.log("Found Key Findings");
-          var finding_lines = section_content.split("\\n");
-          var _iterator4 = _createForOfIteratorHelper(finding_lines),
-            _step4;
-          try {
-            for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
-              var finding_line = _step4.value;
-              var trimmed = finding_line.trim();
-              if (trimmed.indexOf("- ") === 0) {
-                key_findings.append(trimmed.replace("- ", "").trim());
-              }
-            }
-          } catch (err) {
-            _iterator4.e(err);
-          } finally {
-            _iterator4.f();
-          }
-          console.log("key_findings:", key_findings);
-        } else if (section_title.length > 0) {
-          if (section_content.indexOf("**Research Summary**") === -1 && section_content.indexOf("---") === -1) {
-            content_sections.append({
-              "title": section_title,
-              "content": section_content
-            });
-            console.log("Added content section:", section_title);
-          }
+        console.log("key_findings:", key_findings);
+      } else if (section_title.length > 0) {
+        if (section_content.indexOf("**Research Summary**") === -1 && section_content.indexOf("---") === -1) {
+          content_sections.push({
+            "title": section_title,
+            "content": section_content
+          });
+          console.log("Added content section:", section_title);
         }
       }
-    } catch (err) {
-      _iterator2.e(err);
-    } finally {
-      _iterator2.f();
+      i = i + 1;
     }
     console.log("Final executive_summary:", executive_summary);
     console.log("Final key_findings:", key_findings);

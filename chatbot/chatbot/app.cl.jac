@@ -162,23 +162,23 @@ def Chat() -> any {
             if line_stripped.indexOf("Q1:") == 0 {
                 let q = line_stripped.replace("Q1:", "").trim();
                 console.log("Found Q1:", q);
-                questions_list.append(q);
+                questions_list.push(q);
             } elif line_stripped.indexOf("Q2:") == 0 {
                 let q = line_stripped.replace("Q2:", "").trim();
                 console.log("Found Q2:", q);
-                questions_list.append(q);
+                questions_list.push(q);
             } elif line_stripped.indexOf("Q3:") == 0 {
                 let q = line_stripped.replace("Q3:", "").trim();
                 console.log("Found Q3:", q);
-                questions_list.append(q);
+                questions_list.push(q);
             } elif line_stripped.indexOf("Q4:") == 0 {
                 let q = line_stripped.replace("Q4:", "").trim();
                 console.log("Found Q4:", q);
-                questions_list.append(q);
+                questions_list.push(q);
             } elif line_stripped.indexOf("Q5:") == 0 {
                 let q = line_stripped.replace("Q5:", "").trim();
                 console.log("Found Q5:", q);
-                questions_list.append(q);
+                questions_list.push(q);
             }
         }
         
@@ -224,17 +224,14 @@ def Chat() -> any {
         let content_sections = [];
         
         # Process each section (skip first which is title with single #)
-        for i in range(1, sections.length) {
+        let i = 1;
+        while (i < sections.length) {
             let section = sections[i];
             let section_lines = section.split("\n");
             let section_title = section_lines[0].trim();
             
-            # Get content (everything after first line)
-            let content_lines = [];
-            for j in range(1, section_lines.length) {
-                content_lines.append(section_lines[j]);
-            }
-            let section_content = content_lines.join("\n").trim();
+            # Get content (everything after first line) using slice
+            let section_content = section_lines.slice(1).join("\n").trim();
             
             console.log("Processing section:", section_title);
             
@@ -250,7 +247,7 @@ def Chat() -> any {
                 for finding_line in finding_lines {
                     let trimmed = finding_line.trim();
                     if trimmed.indexOf("- ") == 0 {
-                        key_findings.append(trimmed.replace("- ", "").trim());
+                        key_findings.push(trimmed.replace("- ", "").trim());
                     }
                 }
                 console.log("key_findings:", key_findings);
@@ -258,13 +255,15 @@ def Chat() -> any {
             # Parse other content sections (but skip Research Summary after ---)
             elif section_title.length > 0 {
                 if section_content.indexOf("**Research Summary**") == -1 and section_content.indexOf("---") == -1 {
-                    content_sections.append({
+                    content_sections.push({
                         "title": section_title,
                         "content": section_content
                     });
                     console.log("Added content section:", section_title);
                 }
             }
+            
+            i = i + 1;
         }
         
         console.log("Final executive_summary:", executive_summary);
