@@ -63,6 +63,146 @@ function Chat() {
     _useState0 = _slicedToArray(_useState9, 2),
     originalQuestion = _useState0[0],
     setOriginalQuestion = _useState0[1];
+  function parseInlineMarkdown(text) {
+    if (!text) {
+      return [];
+    }
+    var segments = [];
+    var current_text = text;
+    var i = 0;
+    var buffer = "";
+    while (i < current_text.length) {
+      if (i < current_text.length - 5 && current_text[i] === "*" && current_text[i + 1] === "*" && current_text[i + 2] === "*") {
+        if (buffer.length > 0) {
+          segments.push({
+            text: buffer,
+            bold: false,
+            italic: false,
+            code: false
+          });
+          buffer = "";
+        }
+        var _end = current_text.indexOf("***", i + 3);
+        if (_end !== -1) {
+          var bold_italic_text = current_text.substring(i + 3, _end);
+          segments.push({
+            text: bold_italic_text,
+            bold: true,
+            italic: true,
+            code: false
+          });
+          i = _end + 3;
+          continue;
+        }
+      } else if (i < current_text.length - 4 && current_text[i] === "*" && current_text[i + 1] === "*" && current_text[i + 2] !== "*") {
+        if (buffer.length > 0) {
+          segments.push({
+            text: buffer,
+            bold: false,
+            italic: false,
+            code: false
+          });
+          buffer = "";
+        }
+        end = current_text.indexOf("**", i + 2);
+        if (end !== -1) {
+          var bold_text = current_text.substring(i + 2, end);
+          segments.push({
+            text: bold_text,
+            bold: true,
+            italic: false,
+            code: false
+          });
+          i = end + 2;
+          continue;
+        }
+      } else if (i < current_text.length - 2 && current_text[i] === "*" && current_text[i + 1] !== "*") {
+        if (buffer.length > 0) {
+          segments.push({
+            text: buffer,
+            bold: false,
+            italic: false,
+            code: false
+          });
+          buffer = "";
+        }
+        end = i + 1;
+        while (end < current_text.length && current_text[end] !== "*") {
+          end = end + 1;
+        }
+        if (end < current_text.length) {
+          var italic_text = current_text.substring(i + 1, end);
+          segments.push({
+            text: italic_text,
+            bold: false,
+            italic: true,
+            code: false
+          });
+          i = end + 1;
+          continue;
+        }
+      } else if (current_text[i] === "`") {
+        if (buffer.length > 0) {
+          segments.push({
+            text: buffer,
+            bold: false,
+            italic: false,
+            code: false
+          });
+          buffer = "";
+        }
+        end = current_text.indexOf("`", i + 1);
+        if (end !== -1) {
+          var code_text = current_text.substring(i + 1, end);
+          segments.push({
+            text: code_text,
+            bold: false,
+            italic: false,
+            code: true
+          });
+          i = end + 1;
+          continue;
+        }
+      }
+      buffer = buffer + current_text[i];
+      i = i + 1;
+    }
+    if (buffer.length > 0) {
+      segments.push({
+        text: buffer,
+        bold: false,
+        italic: false,
+        code: false
+      });
+    }
+    return segments;
+  }
+  function renderFormattedText(text) {
+    var segments = parseInlineMarkdown(text);
+    return __jacJsx(Box, {
+      "component": "span"
+    }, [segments.map(function (seg, idx) {
+      var sx_style = {};
+      if (seg.bold) {
+        sx_style.fontWeight = 700;
+      }
+      if (seg.italic) {
+        sx_style.fontStyle = "italic";
+      }
+      if (seg.code) {
+        sx_style.fontFamily = "monospace";
+        sx_style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+        sx_style.padding = "2px 6px";
+        sx_style.borderRadius = "4px";
+        sx_style.fontSize = "0.9em";
+      }
+      return __jacJsx(Typography, {
+        "key": idx,
+        "component": "span",
+        "sx": sx_style
+      }, [seg.text]);
+    })]);
+  }
   function sendMessage() {
     return _sendMessage.apply(this, arguments);
   }
@@ -168,12 +308,8 @@ function Chat() {
     }, [msg.text]);
   }
   function renderClarification(msg) {
-    console.log("=== CLARIFICATION DEBUG ===");
-    console.log("msg.data:", msg.data);
     var raw_text = msg.data.text;
-    console.log("raw_text:", raw_text);
     var lines = raw_text.split("\\n");
-    console.log("lines:", lines);
     var questions_list = [];
     var _iterator = _createForOfIteratorHelper(lines),
       _step;
@@ -182,25 +318,15 @@ function Chat() {
         var line = _step.value;
         var line_stripped = line.trim();
         if (line_stripped.indexOf("Q1:") === 0) {
-          var _q = line_stripped.replace("Q1:", "").trim();
-          console.log("Found Q1:", _q);
-          questions_list.push(_q);
+          questions_list.push(line_stripped.replace("Q1:", "").trim());
         } else if (line_stripped.indexOf("Q2:") === 0) {
-          q = line_stripped.replace("Q2:", "").trim();
-          console.log("Found Q2:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q2:", "").trim());
         } else if (line_stripped.indexOf("Q3:") === 0) {
-          q = line_stripped.replace("Q3:", "").trim();
-          console.log("Found Q3:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q3:", "").trim());
         } else if (line_stripped.indexOf("Q4:") === 0) {
-          q = line_stripped.replace("Q4:", "").trim();
-          console.log("Found Q4:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q4:", "").trim());
         } else if (line_stripped.indexOf("Q5:") === 0) {
-          q = line_stripped.replace("Q5:", "").trim();
-          console.log("Found Q5:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q5:", "").trim());
         }
       }
     } catch (err) {
@@ -208,7 +334,6 @@ function Chat() {
     } finally {
       _iterator.f();
     }
-    console.log("Final questions_list:", questions_list);
     return __jacJsx(Box, {}, [__jacJsx(Typography, {
       "sx": {
         mb: 2,
@@ -230,16 +355,10 @@ function Chat() {
     }, ["📝 Please answer these questions so I can conduct targeted research for you?"])]);
   }
   function renderMarkdownReport(msg) {
-    console.log("=== MARKDOWN REPORT DEBUG ===");
-    console.log("msg.data:", msg.data);
     var markdown = msg.data.markdown;
     var topic = msg.data.topic;
     var search_count = msg.data.metadata.search_count;
-    console.log("markdown:", markdown);
-    console.log("topic:", topic);
-    console.log("search_count:", search_count);
     var sections = markdown.split("## ");
-    console.log("sections length:", sections.length);
     var executive_summary = "";
     var key_findings = [];
     var content_sections = [];
@@ -249,12 +368,9 @@ function Chat() {
       var section_lines = section.split("\\n");
       var section_title = section_lines[0].trim();
       var section_content = section_lines.slice(1).join("\\n").trim();
-      console.log("Processing section:", section_title);
       if (section_title.indexOf("Executive Summary") !== -1) {
         executive_summary = section_content;
-        console.log("Found Executive Summary");
       } else if (section_title.indexOf("Key Findings") !== -1) {
-        console.log("Found Key Findings");
         var finding_lines = section_content.split("\\n");
         var _iterator2 = _createForOfIteratorHelper(finding_lines),
           _step2;
@@ -271,95 +387,151 @@ function Chat() {
         } finally {
           _iterator2.f();
         }
-        console.log("key_findings:", key_findings);
       } else if (section_title.length > 0) {
         if (section_content.indexOf("**Research Summary**") === -1 && section_content.indexOf("---") === -1) {
           content_sections.push({
             "title": section_title,
             "content": section_content
           });
-          console.log("Added content section:", section_title);
         }
       }
       i = i + 1;
     }
-    console.log("Final executive_summary:", executive_summary);
-    console.log("Final key_findings:", key_findings);
-    console.log("Final content_sections:", content_sections);
     return __jacJsx(Box, {}, [__jacJsx(Typography, {
       "variant": "h6",
       "sx": {
         mb: 2,
-        fontWeight: 700
+        fontWeight: 700,
+        color: "primary.main"
       }
     }, ["🔬 Deep Research Report"]), __jacJsx(Typography, {
       "variant": "subtitle2",
       "sx": {
-        mb: 2,
-        color: "text.secondary"
+        mb: 3,
+        color: "text.secondary",
+        fontStyle: "italic"
       }
-    }, ["Topic: ", topic]), __jacJsx(Typography, {
+    }, ["Topic: ", topic]), __jacJsx(Box, {
+      "sx": {
+        mb: 3,
+        p: 2,
+        bgcolor: "primary.50",
+        borderRadius: 2,
+        borderLeft: "4px solid",
+        borderColor: "primary.main"
+      }
+    }, [__jacJsx(Typography, {
       "variant": "subtitle1",
       "sx": {
-        mb: 1,
-        fontWeight: 600
+        mb: 1.5,
+        fontWeight: 700,
+        color: "primary.dark"
       }
     }, ["📊 Executive Summary"]), __jacJsx(Typography, {
       "sx": {
-        mb: 3,
-        whiteSpace: "pre-wrap"
+        lineHeight: 1.8,
+        color: "text.primary"
       }
-    }, [executive_summary]), __jacJsx(Typography, {
+    }, [renderFormattedText(executive_summary)])]), __jacJsx(Box, {
+      "sx": {
+        mb: 3,
+        p: 2,
+        bgcolor: "secondary.50",
+        borderRadius: 2,
+        borderLeft: "4px solid",
+        borderColor: "secondary.main"
+      }
+    }, [__jacJsx(Typography, {
       "variant": "subtitle1",
       "sx": {
-        mb: 1,
-        fontWeight: 600
+        mb: 1.5,
+        fontWeight: 700,
+        color: "secondary.dark"
       }
     }, ["🔍 Key Findings"]), key_findings.map(function (f, idx) {
-      return __jacJsx(Typography, {
-        "key": idx,
-        "sx": {
-          mb: 1.5,
-          pl: 2
-        }
-      }, ["• ", f]);
-    }), content_sections.map(function (section, idx) {
       return __jacJsx(Box, {
         "key": idx,
         "sx": {
-          mt: 3
+          mb: 1.5,
+          display: "flex",
+          alignItems: "flex-start"
+        }
+      }, [__jacJsx(Typography, {
+        "sx": {
+          mr: 1,
+          color: "secondary.main",
+          fontWeight: 700,
+          minWidth: "24px"
+        }
+      }, ["•"]), __jacJsx(Typography, {
+        "sx": {
+          flex: 1,
+          lineHeight: 1.7
+        }
+      }, [renderFormattedText(f)])]);
+    })]), content_sections.map(function (section, idx) {
+      return __jacJsx(Box, {
+        "key": idx,
+        "sx": {
+          mb: 3,
+          p: 2,
+          bgcolor: "grey.50",
+          borderRadius: 2,
+          borderLeft: "4px solid",
+          borderColor: "grey.400"
         }
       }, [__jacJsx(Typography, {
         "variant": "subtitle1",
         "sx": {
-          mb: 1,
-          fontWeight: 600
+          mb: 1.5,
+          fontWeight: 700,
+          color: "text.primary"
         }
-      }, ["📈 ", section.title]), __jacJsx(Typography, {
+      }, ["📈 ", renderFormattedText(section.title)]), __jacJsx(Typography, {
         "sx": {
           whiteSpace: "pre-wrap",
-          lineHeight: 1.7
+          lineHeight: 1.8,
+          color: "text.primary"
         }
-      }, [section.content])]);
+      }, [renderFormattedText(section.content)])]);
     }), __jacJsx(Box, {
       "sx": {
-        mt: 3,
-        p: 2,
+        mt: 4,
+        p: 2.5,
         bgcolor: "grey.100",
-        borderRadius: 2
+        borderRadius: 2,
+        border: "2px dashed",
+        borderColor: "grey.300"
       }
     }, [__jacJsx(Typography, {
       "variant": "subtitle2",
       "sx": {
-        fontWeight: 600
+        fontWeight: 700,
+        mb: 1.5,
+        color: "text.primary"
       }
-    }, ["📚 Research Summary"]), __jacJsx(Typography, {
-      "variant": "body2"
-    }, ["• Total searches conducted: ", search_count]), __jacJsx(Typography, {
-      "variant": "body2"
+    }, ["📚 Research Summary"]), __jacJsx(Box, {
+      "sx": {
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.75
+      }
+    }, [__jacJsx(Typography, {
+      "variant": "body2",
+      "sx": {
+        color: "text.secondary"
+      }
+    }, ["• Total searches conducted: ", __jacJsx("strong", {}, [search_count])]), __jacJsx(Typography, {
+      "variant": "body2",
+      "sx": {
+        color: "text.secondary"
+      }
     }, ["• Deep research with multiple sources per topic"]), __jacJsx(Typography, {
-      "variant": "body2"
-    }, ["• Personalized to your specific needs"])])]);
+      "variant": "body2",
+      "sx": {
+        color: "text.secondary"
+      }
+    }, ["• Personalized to your specific needs"])])])]);
   }
   function renderError(msg) {
     return __jacJsx(Typography, {
@@ -425,8 +597,8 @@ function Chat() {
         "timeout": 800
       }, [__jacJsx(Box, {
         "sx": {
-          maxWidth: "70%",
-          padding: 1.5,
+          maxWidth: "85%",
+          padding: 2,
           borderRadius: 2,
           backgroundColor: bgColor,
           color: textColor,
@@ -441,7 +613,7 @@ function Chat() {
     })]);
   }
   return __jacJsx(Container, {
-    "maxWidth": "md",
+    "maxWidth": "lg",
     "sx": {
       py: 3
     }
@@ -485,13 +657,13 @@ function Chat() {
       color: "#64748b",
       fontWeight: 500
     }
-  }, ["Ask me anything..."])])])]), __jacJsx(Fade, {
+  }, ["AI-powered comprehensive research assistant"])])])]), __jacJsx(Fade, {
     "in": true,
     "timeout": 1200
   }, [__jacJsx(Paper, {
     "elevation": 0,
     "sx": {
-      height: "400px",
+      height: "500px",
       overflowY: "auto",
       p: 3,
       mb: 2,
@@ -538,7 +710,7 @@ function Chat() {
         sendMessage();
       }
     },
-    "placeholder": "Type your message here...",
+    "placeholder": "Type your research topic here...",
     "variant": "outlined",
     "disabled": loading,
     "sx": {
@@ -571,7 +743,7 @@ function Chat() {
       transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
       "&:hover": {
         background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-        transform: "scale(1.1) rotate(5deg)",
+        transform: "scale(1.05)",
         boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"
       },
       "&:active": {

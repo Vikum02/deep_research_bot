@@ -46,7 +46,7 @@ Returns V1:, V2:, V3: with related but distinct search queries."""
 def generate_search_variations(question: str) -> str by llm();
 
 # PHASE 3 & 4: COMPREHENSIVE MARKDOWN REPORT
-"""Create a 1500-2000 word research report in markdown format with ## headings, - bullet points, and **bold** text.
+"""Create a 2000-2500 word research report in markdown format with ## headings, - bullet points, and **bold** text.
 Include Executive Summary, Key Findings, multiple topical sections (200-300 words each), and Recommendations.
 Use specific data, numbers, dates, and examples throughout. End with Research Summary metadata."""
 def generate_markdown_report(topic: str, all_search_data: str, search_count: int, user_context: str) -> str by llm();

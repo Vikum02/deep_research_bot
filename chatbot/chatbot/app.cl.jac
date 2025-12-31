@@ -56,6 +56,138 @@ def Chat() -> any {
     let [awaitingClarification, setAwaitingClarification] = useState(false);
     let [originalQuestion, setOriginalQuestion] = useState("");
 
+    # HELPER: Parse inline markdown formatting
+    def parseInlineMarkdown(text: any) -> any {
+        if not text { return []; }
+        
+        let segments = [];
+        let current_text = text;
+        
+        # Process the text character by character to handle all patterns
+        let i = 0;
+        let buffer = "";
+        
+        while (i < current_text.length) {
+            # Check for ***bold italic*** (3 asterisks)
+            if i < current_text.length - 5 and current_text[i] == "*" and current_text[i + 1] == "*" and current_text[i + 2] == "*" {
+                # Save buffer as normal text
+                if buffer.length > 0 {
+                    segments.push({ text: buffer, bold: False, italic: False, code: False });
+                    buffer = "";
+                }
+                
+                # Find closing ***
+                let end = current_text.indexOf("***", i + 3);
+                if end != -1 {
+                    let bold_italic_text = current_text.substring(i + 3, end);
+                    segments.push({ text: bold_italic_text, bold: True, italic: True, code: False });
+                    i = end + 3;
+                    continue;
+                }
+            }
+            
+            # Check for **bold** (2 asterisks)
+            elif i < current_text.length - 4 and current_text[i] == "*" and current_text[i + 1] == "*" and current_text[i + 2] != "*" {
+                # Save buffer as normal text
+                if buffer.length > 0 {
+                    segments.push({ text: buffer, bold: False, italic: False, code: False });
+                    buffer = "";
+                }
+                
+                # Find closing **
+                let end = current_text.indexOf("**", i + 2);
+                if end != -1 {
+                    let bold_text = current_text.substring(i + 2, end);
+                    segments.push({ text: bold_text, bold: True, italic: False, code: False });
+                    i = end + 2;
+                    continue;
+                }
+            }
+            
+            # Check for *italic* (1 asterisk, not followed by another asterisk)
+            elif i < current_text.length - 2 and current_text[i] == "*" and current_text[i + 1] != "*" {
+                # Save buffer as normal text
+                if buffer.length > 0 {
+                    segments.push({ text: buffer, bold: False, italic: False, code: False });
+                    buffer = "";
+                }
+                
+                # Find closing *
+                let end = i + 1;
+                while (end < current_text.length and current_text[end] != "*") {
+                    end = end + 1;
+                }
+                
+                if end < current_text.length {
+                    let italic_text = current_text.substring(i + 1, end);
+                    segments.push({ text: italic_text, bold: False, italic: True, code: False });
+                    i = end + 1;
+                    continue;
+                }
+            }
+            
+            # Check for `code` (backticks)
+            elif current_text[i] == "`" {
+                # Save buffer as normal text
+                if buffer.length > 0 {
+                    segments.push({ text: buffer, bold: False, italic: False, code: False });
+                    buffer = "";
+                }
+                
+                # Find closing `
+                let end = current_text.indexOf("`", i + 1);
+                if end != -1 {
+                    let code_text = current_text.substring(i + 1, end);
+                    segments.push({ text: code_text, bold: False, italic: False, code: True });
+                    i = end + 1;
+                    continue;
+                }
+            }
+            
+            # Regular character - add to buffer
+            buffer = buffer + current_text[i];
+            i = i + 1;
+        }
+        
+        # Add remaining buffer
+        if buffer.length > 0 {
+            segments.push({ text: buffer, bold: False, italic: False, code: False });
+        }
+        
+        return segments;
+    }
+
+    # HELPER: Render formatted text segments
+    def renderFormattedText(text: any) -> any {
+        let segments = parseInlineMarkdown(text);
+        
+        return <Box component="span">
+            {segments.map(lambda seg: any, idx: number -> any {
+                let sx_style = {};
+                
+                if seg.bold {
+                    sx_style.fontWeight = 700;
+                }
+                
+                if seg.italic {
+                    sx_style.fontStyle = "italic";
+                }
+                
+                if seg.code {
+                    sx_style.fontFamily = "monospace";
+                    sx_style.backgroundColor = "rgba(0, 0, 0, 0.05)";
+                    sx_style.padding = "2px 6px";
+                    sx_style.borderRadius = "4px";
+                    sx_style.fontSize = "0.9em";
+                }
+                
+                return <Typography key={idx} component="span" sx={sx_style}>
+                    {seg.text}
+                </Typography>;
+            })}
+        </Box>;
+    }
+
     async def sendMessage() -> None {
         if loading { return; }
         if not currentMessage.trim() { return; }
@@ -143,16 +275,8 @@ def Chat() -> any {
 
     # Render clarification questions
     def renderClarification(msg: any) -> any {
-        console.log("=== CLARIFICATION DEBUG ===");
-        console.log("msg.data:", msg.data);
-        
-        # Parse questions from raw text
         let raw_text = msg.data.text;
-        console.log("raw_text:", raw_text);
-        
         let lines = raw_text.split("\n");
-        console.log("lines:", lines);
-        
         let questions_list = [];
         
         # Extract questions from Q1:, Q2:, Q3:, etc. format
@@ -160,29 +284,17 @@ def Chat() -> any {
             let line_stripped = line.trim();
             
             if line_stripped.indexOf("Q1:") == 0 {
-                let q = line_stripped.replace("Q1:", "").trim();
-                console.log("Found Q1:", q);
-                questions_list.push(q);
+                questions_list.push(line_stripped.replace("Q1:", "").trim());
             } elif line_stripped.indexOf("Q2:") == 0 {
-                let q = line_stripped.replace("Q2:", "").trim();
-                console.log("Found Q2:", q);
-                questions_list.push(q);
+                questions_list.push(line_stripped.replace("Q2:", "").trim());
             } elif line_stripped.indexOf("Q3:") == 0 {
-                let q = line_stripped.replace("Q3:", "").trim();
-                console.log("Found Q3:", q);
-                questions_list.push(q);
+                questions_list.push(line_stripped.replace("Q3:", "").trim());
             } elif line_stripped.indexOf("Q4:") == 0 {
-                let q = line_stripped.replace("Q4:", "").trim();
-                console.log("Found Q4:", q);
-                questions_list.push(q);
+                questions_list.push(line_stripped.replace("Q4:", "").trim());
             } elif line_stripped.indexOf("Q5:") == 0 {
-                let q = line_stripped.replace("Q5:", "").trim();
-                console.log("Found Q5:", q);
-                questions_list.push(q);
+                questions_list.push(line_stripped.replace("Q5:", "").trim());
             }
         }
-        
-        console.log("Final questions_list:", questions_list);
         
         # Render the parsed questions
         return <Box>
@@ -200,23 +312,15 @@ def Chat() -> any {
         </Box>;
     }
 
-    # Render markdown research report
+    # Render markdown research report with formatting
     def renderMarkdownReport(msg: any) -> any {
-        console.log("=== MARKDOWN REPORT DEBUG ===");
-        console.log("msg.data:", msg.data);
-        
         # Get raw markdown text from backend
         let markdown = msg.data.markdown;
         let topic = msg.data.topic;
         let search_count = msg.data.metadata.search_count;
         
-        console.log("markdown:", markdown);
-        console.log("topic:", topic);
-        console.log("search_count:", search_count);
-        
         # Parse markdown into sections by splitting on ## headers
         let sections = markdown.split("## ");
-        console.log("sections length:", sections.length);
         
         # Initialize parsed data
         let executive_summary = "";
@@ -230,19 +334,15 @@ def Chat() -> any {
             let section_lines = section.split("\n");
             let section_title = section_lines[0].trim();
             
-            # Get content (everything after first line) using slice
+            # Get content (everything after first line)
             let section_content = section_lines.slice(1).join("\n").trim();
-            
-            console.log("Processing section:", section_title);
             
             # Parse Executive Summary
             if section_title.indexOf("Executive Summary") != -1 {
                 executive_summary = section_content;
-                console.log("Found Executive Summary");
             }
             # Parse Key Findings (extract bullet points)
             elif section_title.indexOf("Key Findings") != -1 {
-                console.log("Found Key Findings");
                 let finding_lines = section_content.split("\n");
                 for finding_line in finding_lines {
                     let trimmed = finding_line.trim();
@@ -250,7 +350,6 @@ def Chat() -> any {
                         key_findings.push(trimmed.replace("- ", "").trim());
                     }
                 }
-                console.log("key_findings:", key_findings);
             }
             # Parse other content sections (but skip Research Summary after ---)
             elif section_title.length > 0 {
@@ -259,67 +358,73 @@ def Chat() -> any {
                         "title": section_title,
                         "content": section_content
                     });
-                    console.log("Added content section:", section_title);
                 }
             }
             
             i = i + 1;
         }
         
-        console.log("Final executive_summary:", executive_summary);
-        console.log("Final key_findings:", key_findings);
-        console.log("Final content_sections:", content_sections);
-        
-        # Render the parsed report
+        # Render the parsed report with formatted text
         return <Box>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "primary.main" }}>
                 🔬 Deep Research Report
             </Typography>
             
-            <Typography variant="subtitle2" sx={{ mb: 2, color: "text.secondary" }}>
+            <Typography variant="subtitle2" sx={{ mb: 3, color: "text.secondary", fontStyle: "italic" }}>
                 Topic: {topic}
             </Typography>
             
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                📊 Executive Summary
-            </Typography>
-            <Typography sx={{ mb: 3, whiteSpace: "pre-wrap" }}>
-                {executive_summary}
-            </Typography>
+            <Box sx={{ mb: 3, p: 2, bgcolor: "primary.50", borderRadius: 2, borderLeft: "4px solid", borderColor: "primary.main" }}>
+                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700, color: "primary.dark" }}>
+                    📊 Executive Summary
+                </Typography>
+                <Typography sx={{ lineHeight: 1.8, color: "text.primary" }}>
+                    {renderFormattedText(executive_summary)}
+                </Typography>
+            </Box>
             
-            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                🔍 Key Findings
-            </Typography>
-            {key_findings.map(lambda f: any, idx: number -> any {
-                return <Typography key={idx} sx={{ mb: 1.5, pl: 2 }}>
-                    • {f}
-                </Typography>;
-            })}
+            <Box sx={{ mb: 3, p: 2, bgcolor: "secondary.50", borderRadius: 2, borderLeft: "4px solid", borderColor: "secondary.main" }}>
+                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700, color: "secondary.dark" }}>
+                    🔍 Key Findings
+                </Typography>
+                {key_findings.map(lambda f: any, idx: number -> any {
+                    return <Box key={idx} sx={{ mb: 1.5, display: "flex", alignItems: "flex-start" }}>
+                        <Typography sx={{ mr: 1, color: "secondary.main", fontWeight: 700, minWidth: "24px" }}>
+                            •
+                        </Typography>
+                        <Typography sx={{ flex: 1, lineHeight: 1.7 }}>
+                            {renderFormattedText(f)}
+                        </Typography>
+                    </Box>;
+                })}
+            </Box>
             
             {content_sections.map(lambda section: any, idx: number -> any {
-                return <Box key={idx} sx={{ mt: 3 }}>
-                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                        📈 {section.title}
+                return <Box key={idx} sx={{ mb: 3, p: 2, bgcolor: "grey.50", borderRadius: 2, borderLeft: "4px solid", borderColor: "grey.400" }}>
+                    <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700, color: "text.primary" }}>
+                        📈 {renderFormattedText(section.title)}
                     </Typography>
-                    <Typography sx={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>
-                        {section.content}
+                    <Typography sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8, color: "text.primary" }}>
+                        {renderFormattedText(section.content)}
                     </Typography>
                 </Box>;
             })}
             
-            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+            <Box sx={{ mt: 4, p: 2.5, bgcolor: "grey.100", borderRadius: 2, border: "2px dashed", borderColor: "grey.300" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
                     📚 Research Summary
                 </Typography>
-                <Typography variant="body2">
-                    • Total searches conducted: {search_count}
-                </Typography>
-                <Typography variant="body2">
-                    • Deep research with multiple sources per topic
-                </Typography>
-                <Typography variant="body2">
-                    • Personalized to your specific needs
-                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        • Total searches conducted: <strong>{search_count}</strong>
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        • Deep research with multiple sources per topic
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        • Personalized to your specific needs
+                    </Typography>
+                </Box>
             </Box>
         </Box>;
     }
@@ -396,8 +501,8 @@ def Chat() -> any {
                         <Fade in={True} timeout={800}>
                             <Box
                                 sx={{
-                                    maxWidth: "70%",
-                                    padding: 1.5,
+                                    maxWidth: "85%",
+                                    padding: 2,
                                     borderRadius: 2,
                                     backgroundColor: bgColor,
                                     color: textColor,
@@ -418,7 +523,7 @@ def Chat() -> any {
         </Box>;
     }
 
-    return <Container maxWidth="md" sx={{ py: 3 }}>
+    return <Container maxWidth="lg" sx={{ py: 3 }}>
         <Fade in={True} timeout={1000}>
             <Box sx={{ 
                 display: "flex", 
@@ -451,7 +556,7 @@ def Chat() -> any {
                         color: "#64748b",
                         fontWeight: 500
                     }}>
-                        Ask me anything...
+                        AI-powered comprehensive research assistant
                     </Typography>
                 </Box>
             </Box>
@@ -461,7 +566,7 @@ def Chat() -> any {
             <Paper 
                 elevation={0}
                 sx={{
-                    height: "400px",
+                    height: "500px",
                     overflowY: "auto",
                     p: 3,
                     mb: 2,
@@ -507,7 +612,7 @@ def Chat() -> any {
                             sendMessage(); 
                         }
                     }}
-                    placeholder="Type your message here..."
+                    placeholder="Type your research topic here..."
                     variant="outlined"
                     disabled={loading}
                     sx={{
@@ -529,33 +634,33 @@ def Chat() -> any {
                     }}
                 />
                 <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={sendMessage}
-                    disabled={loading or not currentMessage.trim()}
-                    sx={{
-                        minWidth: "64px",
-                        height: "auto",
-                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-                        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)",
-                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                        "&:hover": {
-                            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-                            transform: "scale(1.1) rotate(5deg)",
-                            boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"
-                        },
-                        "&:active": {
-                            transform: "scale(0.95)",
-                            boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)"
-                        },
-                        "&:disabled": {
-                            background: "rgba(99, 102, 241, 0.5)",
-                            transform: "none"
-                        }
-                    }}
-                >
-                    <Send />
-                </Button>
+    variant="contained"
+    color="primary"
+    onClick={sendMessage}
+    disabled={loading or not currentMessage.trim()}
+    sx={{
+        minWidth: "64px",
+        height: "auto",
+        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)",
+        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+        "&:hover": {
+            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+            transform: "scale(1.05)",
+            boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"
+        },
+        "&:active": {
+            transform: "scale(0.95)",
+            boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)"
+        },
+        "&:disabled": {
+            background: "rgba(99, 102, 241, 0.5)",
+            transform: "none"
+        }
+    }}
+>
+    <Send />
+</Button>
             </Box>
         </Fade>
     </Container>;
