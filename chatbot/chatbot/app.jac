@@ -46,9 +46,41 @@ Returns V1:, V2:, V3: with related but distinct search queries."""
 def generate_search_variations(question: str) -> str by llm();
 
 # PHASE 3 & 4: COMPREHENSIVE MARKDOWN REPORT
-"""Create a 2000-2500 word research report in markdown format with ## headings, - bullet points, and **bold** text.
-Include Executive Summary, Key Findings, multiple topical sections (200-300 words each), and Recommendations.
-Use specific data, numbers, dates, and examples throughout. End with Research Summary metadata."""
+"""Create a 2000-2500 word research report in markdown format.
+
+CRITICAL FORMATTING RULES (FOLLOW EXACTLY):
+1. Use ONLY ## for ALL section headings (never use ###, ####, or #)
+2. Example: ## Executive Summary (NOT ### Executive Summary)
+3. Use - for bullet points (with space after dash)
+4. Use **text** for bold emphasis
+5. Use | for tables with proper alignment
+6. Leave blank lines between sections
+
+Required Structure:
+## Executive Summary
+[2-3 paragraphs summarizing key findings]
+
+## Key Findings
+- Finding 1 with specific data
+- Finding 2 with specific data
+- Finding 3 with specific data
+
+## [Topic Section 1]
+[200-300 words with data, numbers, dates]
+
+## [Topic Section 2]
+[200-300 words with data, numbers, dates]
+
+## [Topic Section 3]
+[200-300 words with data, numbers, dates]
+
+## Recommendations
+- Recommendation 1
+- Recommendation 2
+
+---
+
+Use specific data, numbers, dates, and examples throughout. End report with --- separator."""
 def generate_markdown_report(topic: str, all_search_data: str, search_count: int, user_context: str) -> str by llm();
 
 # RESEARCH BOT WALKER
@@ -155,6 +187,13 @@ walker research_bot {
                 search_num,
                 user_answers
             );
+            
+            # CRITICAL FIX: Normalize all headers to ## format
+            markdown_report = markdown_report.replace("####", "##");
+            markdown_report = markdown_report.replace("###", "##");
+            
+            # Also convert literal \n to actual newlines (safety net)
+            markdown_report = markdown_report.replace("\\n", "\n");
             
             # Return simple object with raw markdown text
             result = {

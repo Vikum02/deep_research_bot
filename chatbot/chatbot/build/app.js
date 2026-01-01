@@ -12,7 +12,9 @@ function _arrayWithHoles(r) { if (Array.isArray(r)) return r; }
 import { __jacJsx, __jacSpawn } from "@jac-client/utils";
 import { useState, useRef, useEffect } from "react";
 import { Router, Routes, Route } from "@jac-client/utils";
-import { Button, TextField, Paper, Box, Typography, Container, CircularProgress, Chip, Avatar, ThemeProvider, createTheme, Fade, Slide } from "@mui/material";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Button, TextField, Paper, Box, Typography, Container, CircularProgress, Chip, Avatar, ThemeProvider, createTheme, Fade, Slide, Divider } from "@mui/material";
 import { SmartToy, Send } from "@mui/icons-material";
 var theme = createTheme({
   palette: {
@@ -68,7 +70,7 @@ function Chat() {
   }
   function _sendMessage() {
     _sendMessage = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee() {
-      var user_msg, formatted_history, _iterator3, _step3, msg, input_to_send, userMessageObj, result, reply_data, botMessageObj, is_asking_clarification;
+      var user_msg, formatted_history, _iterator2, _step2, msg, input_to_send, userMessageObj, result, reply_data, botMessageObj, is_asking_clarification;
       return _regenerator().w(function (_context) {
         while (1) switch (_context.n) {
           case 0:
@@ -88,18 +90,18 @@ function Chat() {
             formatted_history = "";
             if (chatHistory.length > 0) {
               formatted_history = "Previous conversation:\\n";
-              _iterator3 = _createForOfIteratorHelper(chatHistory);
+              _iterator2 = _createForOfIteratorHelper(chatHistory);
               try {
-                for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
-                  msg = _step3.value;
+                for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
+                  msg = _step2.value;
                   if (msg.sender === "user") {
                     formatted_history += "User: " + msg.text + "\\n";
                   }
                 }
               } catch (err) {
-                _iterator3.e(err);
+                _iterator2.e(err);
               } finally {
-                _iterator3.f();
+                _iterator2.f();
               }
             }
             input_to_send = user_msg;
@@ -168,12 +170,8 @@ function Chat() {
     }, [msg.text]);
   }
   function renderClarification(msg) {
-    console.log("=== CLARIFICATION DEBUG ===");
-    console.log("msg.data:", msg.data);
     var raw_text = msg.data.text;
-    console.log("raw_text:", raw_text);
     var lines = raw_text.split("\\n");
-    console.log("lines:", lines);
     var questions_list = [];
     var _iterator = _createForOfIteratorHelper(lines),
       _step;
@@ -182,25 +180,15 @@ function Chat() {
         var line = _step.value;
         var line_stripped = line.trim();
         if (line_stripped.indexOf("Q1:") === 0) {
-          var _q = line_stripped.replace("Q1:", "").trim();
-          console.log("Found Q1:", _q);
-          questions_list.push(_q);
+          questions_list.push(line_stripped.replace("Q1:", "").trim());
         } else if (line_stripped.indexOf("Q2:") === 0) {
-          q = line_stripped.replace("Q2:", "").trim();
-          console.log("Found Q2:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q2:", "").trim());
         } else if (line_stripped.indexOf("Q3:") === 0) {
-          q = line_stripped.replace("Q3:", "").trim();
-          console.log("Found Q3:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q3:", "").trim());
         } else if (line_stripped.indexOf("Q4:") === 0) {
-          q = line_stripped.replace("Q4:", "").trim();
-          console.log("Found Q4:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q4:", "").trim());
         } else if (line_stripped.indexOf("Q5:") === 0) {
-          q = line_stripped.replace("Q5:", "").trim();
-          console.log("Found Q5:", q);
-          questions_list.push(q);
+          questions_list.push(line_stripped.replace("Q5:", "").trim());
         }
       }
     } catch (err) {
@@ -208,7 +196,6 @@ function Chat() {
     } finally {
       _iterator.f();
     }
-    console.log("Final questions_list:", questions_list);
     return __jacJsx(Box, {}, [__jacJsx(Typography, {
       "sx": {
         mb: 2,
@@ -230,118 +217,123 @@ function Chat() {
     }, ["📝 Please answer these questions so I can conduct targeted research for you?"])]);
   }
   function renderMarkdownReport(msg) {
-    console.log("MARKDOWN REPORT DEBUG");
-    console.log("msg.data:", msg.data);
     var markdown = msg.data.markdown;
     var topic = msg.data.topic;
     var search_count = msg.data.metadata.search_count;
-    console.log("markdown:", markdown);
-    console.log("topic:", topic);
-    console.log("search_count:", search_count);
-    var sections = markdown.split("## ");
-    console.log("sections length:", sections.length);
-    var executive_summary = "";
-    var key_findings = [];
-    var content_sections = [];
-    var i = 1;
-    while (i < sections.length) {
-      var section = sections[i];
-      var section_lines = section.split("\\n");
-      var section_title = section_lines[0].trim();
-      var section_content = section_lines.slice(1).join("\\n").trim();
-      console.log("Processing section:", section_title);
-      if (section_title.indexOf("Executive Summary") !== -1) {
-        executive_summary = section_content;
-        console.log("Found Executive Summary");
-      } else if (section_title.indexOf("Key Findings") !== -1) {
-        console.log("Found Key Findings");
-        var finding_lines = section_content.split("\\n");
-        var _iterator2 = _createForOfIteratorHelper(finding_lines),
-          _step2;
-        try {
-          for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
-            var finding_line = _step2.value;
-            var trimmed = finding_line.trim();
-            if (trimmed.indexOf("- ") === 0) {
-              key_findings.push(trimmed.replace("- ", "").trim());
-            }
-          }
-        } catch (err) {
-          _iterator2.e(err);
-        } finally {
-          _iterator2.f();
-        }
-        console.log("key_findings:", key_findings);
-      } else if (section_title.length > 0) {
-        if (section_content.indexOf("**Research Summary**") === -1 && section_content.indexOf("---") === -1) {
-          content_sections.push({
-            "title": section_title,
-            "content": section_content
-          });
-          console.log("Added content section:", section_title);
-        }
-      }
-      i = i + 1;
-    }
-    console.log("Final executive_summary:", executive_summary);
-    console.log("Final key_findings:", key_findings);
-    console.log("Final content_sections:", content_sections);
     return __jacJsx(Box, {}, [__jacJsx(Typography, {
-      "variant": "h6",
+      "variant": "h5",
       "sx": {
-        mb: 2,
-        fontWeight: 700
+        mb: 1,
+        fontWeight: 700,
+        color: "primary.main"
       }
     }, ["🔬 Deep Research Report"]), __jacJsx(Typography, {
       "variant": "subtitle2",
       "sx": {
-        mb: 2,
-        color: "text.secondary"
-      }
-    }, ["Topic: ", topic]), __jacJsx(Typography, {
-      "variant": "subtitle1",
-      "sx": {
-        mb: 1,
-        fontWeight: 600
-      }
-    }, ["📊 Executive Summary"]), __jacJsx(Typography, {
-      "sx": {
         mb: 3,
-        whiteSpace: "pre-wrap"
+        color: "text.secondary",
+        fontStyle: "italic"
       }
-    }, [executive_summary]), __jacJsx(Typography, {
-      "variant": "subtitle1",
+    }, ["Topic: ", topic]), __jacJsx(Divider, {
       "sx": {
-        mb: 1,
-        fontWeight: 600
+        mb: 3
       }
-    }, ["🔍 Key Findings"]), key_findings.map(function (f, idx) {
-      return __jacJsx(Typography, {
-        "key": idx,
-        "sx": {
+    }, []), __jacJsx(Box, {
+      "sx": {
+        "& h1": {
+          fontSize: "1.75rem",
+          fontWeight: 700,
+          mb: 2,
+          mt: 3,
+          color: "primary.main"
+        },
+        "& h2": {
+          fontSize: "1.4rem",
+          fontWeight: 600,
+          mb: 2,
+          mt: 3,
+          color: "text.primary",
+          borderBottom: "2px solid #e5e7eb",
+          paddingBottom: 1
+        },
+        "& h3": {
+          fontSize: "1.2rem",
+          fontWeight: 600,
           mb: 1.5,
-          pl: 2
-        }
-      }, ["• ", f]);
-    }), content_sections.map(function (section, idx) {
-      return __jacJsx(Box, {
-        "key": idx,
-        "sx": {
-          mt: 3
-        }
-      }, [__jacJsx(Typography, {
-        "variant": "subtitle1",
-        "sx": {
+          mt: 2,
+          color: "text.primary"
+        },
+        "& p": {
+          mb: 2,
+          lineHeight: 1.8,
+          color: "text.primary"
+        },
+        "& ul, & ol": {
+          mb: 2,
+          pl: 3
+        },
+        "& li": {
           mb: 1,
-          fontWeight: 600
-        }
-      }, ["📈 ", section.title]), __jacJsx(Typography, {
-        "sx": {
-          whiteSpace: "pre-wrap",
           lineHeight: 1.7
+        },
+        "& strong": {
+          fontWeight: 700,
+          color: "text.primary"
+        },
+        "& em": {
+          fontStyle: "italic"
+        },
+        "& code": {
+          backgroundColor: "#f1f5f9",
+          padding: "2px 6px",
+          borderRadius: 1,
+          fontSize: "0.9em",
+          fontFamily: "monospace"
+        },
+        "& pre": {
+          backgroundColor: "#f1f5f9",
+          padding: 2,
+          borderRadius: 2,
+          overflow: "auto",
+          mb: 2
+        },
+        "& blockquote": {
+          borderLeft: "4px solid #6366f1",
+          paddingLeft: 2,
+          fontStyle: "italic",
+          color: "text.secondary",
+          mb: 2
+        },
+        "& table": {
+          width: "100%",
+          borderCollapse: "collapse",
+          mb: 2,
+          border: "1px solid #e5e7eb"
+        },
+        "& th": {
+          backgroundColor: "#f8fafc",
+          padding: 1.5,
+          textAlign: "left",
+          fontWeight: 600,
+          borderBottom: "2px solid #e5e7eb"
+        },
+        "& td": {
+          padding: 1.5,
+          borderBottom: "1px solid #e5e7eb"
+        },
+        "& hr": {
+          border: "none",
+          borderTop: "1px solid #e5e7eb",
+          my: 3
         }
-      }, [section.content])]);
-    }), __jacJsx(Box, {
+      }
+    }, [__jacJsx(ReactMarkdown, {
+      "remarkPlugins": [remarkGfm]
+    }, [markdown])]), __jacJsx(Divider, {
+      "sx": {
+        my: 3
+      }
+    }, []), __jacJsx(Box, {
       "sx": {
         mt: 3,
         p: 2,
@@ -351,12 +343,19 @@ function Chat() {
     }, [__jacJsx(Typography, {
       "variant": "subtitle2",
       "sx": {
-        fontWeight: 600
+        fontWeight: 600,
+        mb: 1
       }
     }, ["📚 Research Summary"]), __jacJsx(Typography, {
-      "variant": "body2"
+      "variant": "body2",
+      "sx": {
+        mb: 0.5
+      }
     }, ["• Total searches conducted: ", search_count]), __jacJsx(Typography, {
-      "variant": "body2"
+      "variant": "body2",
+      "sx": {
+        mb: 0.5
+      }
     }, ["• Deep research with multiple sources per topic"]), __jacJsx(Typography, {
       "variant": "body2"
     }, ["• Personalized to your specific needs"])])]);

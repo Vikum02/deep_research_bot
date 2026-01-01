@@ -1,7 +1,9 @@
 import {__jacJsx, __jacSpawn} from "@jac-client/utils";
 import { useState, useRef, useEffect } from "react";
 import { Router, Routes, Route } from "@jac-client/utils";
-import { Button, TextField, Paper, Box, Typography, Container, CircularProgress, Chip, Avatar, ThemeProvider, createTheme, Fade, Slide } from "@mui/material";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Button, TextField, Paper, Box, Typography, Container, CircularProgress, Chip, Avatar, ThemeProvider, createTheme, Fade, Slide, Divider } from "@mui/material";
 import { SmartToy, Send } from "@mui/icons-material";
 let theme = createTheme({palette: {primary: {main: "#6366f1", light: "#818cf8", dark: "#4f46e5"}, secondary: {main: "#ec4899", light: "#f472b6", dark: "#db2777"}, background: {default: "#f8fafc", paper: "#ffffff"}, text: {primary: "#1e293b", secondary: "#64748b"}}, typography: {fontFamily: "'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif"}, shape: {borderRadius: 12}});
 function Chat() {
@@ -63,92 +65,32 @@ function Chat() {
     return __jacJsx(Typography, {"sx": {whiteSpace: "pre-wrap", wordBreak: "break-word"}}, [msg.text]);
   }
   function renderClarification(msg) {
-    console.log("=== CLARIFICATION DEBUG ===");
-    console.log("msg.data:", msg.data);
     let raw_text = msg.data.text;
-    console.log("raw_text:", raw_text);
     let lines = raw_text.split("\\n");
-    console.log("lines:", lines);
     let questions_list = [];
     for (const line of lines) {
       let line_stripped = line.trim();
       if (line_stripped.indexOf("Q1:") === 0) {
-        let q = line_stripped.replace("Q1:", "").trim();
-        console.log("Found Q1:", q);
-        questions_list.push(q);
+        questions_list.push(line_stripped.replace("Q1:", "").trim());
       } else if (line_stripped.indexOf("Q2:") === 0) {
-        q = line_stripped.replace("Q2:", "").trim();
-        console.log("Found Q2:", q);
-        questions_list.push(q);
+        questions_list.push(line_stripped.replace("Q2:", "").trim());
       } else if (line_stripped.indexOf("Q3:") === 0) {
-        q = line_stripped.replace("Q3:", "").trim();
-        console.log("Found Q3:", q);
-        questions_list.push(q);
+        questions_list.push(line_stripped.replace("Q3:", "").trim());
       } else if (line_stripped.indexOf("Q4:") === 0) {
-        q = line_stripped.replace("Q4:", "").trim();
-        console.log("Found Q4:", q);
-        questions_list.push(q);
+        questions_list.push(line_stripped.replace("Q4:", "").trim());
       } else if (line_stripped.indexOf("Q5:") === 0) {
-        q = line_stripped.replace("Q5:", "").trim();
-        console.log("Found Q5:", q);
-        questions_list.push(q);
+        questions_list.push(line_stripped.replace("Q5:", "").trim());
       }
     }
-    console.log("Final questions_list:", questions_list);
     return __jacJsx(Box, {}, [__jacJsx(Typography, {"sx": {mb: 2, fontWeight: 600}}, ["🔍 To provide the most relevant research, I need to understand better:"]), questions_list.map((q, idx) => {
       return __jacJsx(Typography, {"key": idx, "sx": {mb: 1.5, pl: 1}}, [idx + 1, ". ", q]);
     }), __jacJsx(Typography, {"sx": {mt: 2, fontStyle: "italic"}}, ["📝 Please answer these questions so I can conduct targeted research for you?"])]);
   }
   function renderMarkdownReport(msg) {
-    console.log("MARKDOWN REPORT DEBUG");
-    console.log("msg.data:", msg.data);
     let markdown = msg.data.markdown;
     let topic = msg.data.topic;
     let search_count = msg.data.metadata.search_count;
-    console.log("markdown:", markdown);
-    console.log("topic:", topic);
-    console.log("search_count:", search_count);
-    let sections = markdown.split("## ");
-    console.log("sections length:", sections.length);
-    let executive_summary = "";
-    let key_findings = [];
-    let content_sections = [];
-    let i = 1;
-    while (i < sections.length) {
-      let section = sections[i];
-      let section_lines = section.split("\\n");
-      let section_title = section_lines[0].trim();
-      let section_content = section_lines.slice(1).join("\\n").trim();
-      console.log("Processing section:", section_title);
-      if (section_title.indexOf("Executive Summary") !== -1) {
-        executive_summary = section_content;
-        console.log("Found Executive Summary");
-      } else if (section_title.indexOf("Key Findings") !== -1) {
-        console.log("Found Key Findings");
-        let finding_lines = section_content.split("\\n");
-        for (const finding_line of finding_lines) {
-          let trimmed = finding_line.trim();
-          if (trimmed.indexOf("- ") === 0) {
-            key_findings.push(trimmed.replace("- ", "").trim());
-          }
-        }
-        console.log("key_findings:", key_findings);
-      } else if (section_title.length > 0) {
-        if (section_content.indexOf("**Research Summary**") === -1 && section_content.indexOf("---") === -1) {
-          content_sections.push({"title": section_title, "content": section_content});
-          console.log("Added content section:", section_title);
-        }
-      }
-      i = i + 1;
-    }
-    console.log("Final executive_summary:", executive_summary);
-    console.log("Final key_findings:", key_findings);
-    console.log("Final content_sections:", content_sections);
-    return __jacJsx(Box, {}, [__jacJsx(Typography, {"variant": "h6", "sx": {mb: 2, fontWeight: 700}}, ["🔬 Deep Research Report"]), __jacJsx(Typography, {"variant": "subtitle2", "sx": {mb: 2, color: "text.secondary"}}, ["Topic: ", topic]), __jacJsx(Typography, {"variant": "subtitle1", "sx": {mb: 1, fontWeight: 600}}, ["📊 Executive Summary"]), __jacJsx(Typography, {"sx": {mb: 3, whiteSpace: "pre-wrap"}}, [executive_summary]), __jacJsx(Typography, {"variant": "subtitle1", "sx": {mb: 1, fontWeight: 600}}, ["🔍 Key Findings"]), key_findings.map((f, idx) => {
-      return __jacJsx(Typography, {"key": idx, "sx": {mb: 1.5, pl: 2}}, ["• ", f]);
-    }), content_sections.map((section, idx) => {
-      return __jacJsx(Box, {"key": idx, "sx": {mt: 3}}, [__jacJsx(Typography, {"variant": "subtitle1", "sx": {mb: 1, fontWeight: 600}}, ["📈 ", section.title]), __jacJsx(Typography, {"sx": {whiteSpace: "pre-wrap", lineHeight: 1.7}}, [section.content])]);
-    }), __jacJsx(Box, {"sx": {mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 2}}, [__jacJsx(Typography, {"variant": "subtitle2", "sx": {fontWeight: 600}}, ["📚 Research Summary"]), __jacJsx(Typography, {"variant": "body2"}, ["• Total searches conducted: ", search_count]), __jacJsx(Typography, {"variant": "body2"}, ["• Deep research with multiple sources per topic"]), __jacJsx(Typography, {"variant": "body2"}, ["• Personalized to your specific needs"])])]);
+    return __jacJsx(Box, {}, [__jacJsx(Typography, {"variant": "h5", "sx": {mb: 1, fontWeight: 700, color: "primary.main"}}, ["🔬 Deep Research Report"]), __jacJsx(Typography, {"variant": "subtitle2", "sx": {mb: 3, color: "text.secondary", fontStyle: "italic"}}, ["Topic: ", topic]), __jacJsx(Divider, {"sx": {mb: 3}}, []), __jacJsx(Box, {"sx": {"& h1": {fontSize: "1.75rem", fontWeight: 700, mb: 2, mt: 3, color: "primary.main"}, "& h2": {fontSize: "1.4rem", fontWeight: 600, mb: 2, mt: 3, color: "text.primary", borderBottom: "2px solid #e5e7eb", paddingBottom: 1}, "& h3": {fontSize: "1.2rem", fontWeight: 600, mb: 1.5, mt: 2, color: "text.primary"}, "& p": {mb: 2, lineHeight: 1.8, color: "text.primary"}, "& ul, & ol": {mb: 2, pl: 3}, "& li": {mb: 1, lineHeight: 1.7}, "& strong": {fontWeight: 700, color: "text.primary"}, "& em": {fontStyle: "italic"}, "& code": {backgroundColor: "#f1f5f9", padding: "2px 6px", borderRadius: 1, fontSize: "0.9em", fontFamily: "monospace"}, "& pre": {backgroundColor: "#f1f5f9", padding: 2, borderRadius: 2, overflow: "auto", mb: 2}, "& blockquote": {borderLeft: "4px solid #6366f1", paddingLeft: 2, fontStyle: "italic", color: "text.secondary", mb: 2}, "& table": {width: "100%", borderCollapse: "collapse", mb: 2, border: "1px solid #e5e7eb"}, "& th": {backgroundColor: "#f8fafc", padding: 1.5, textAlign: "left", fontWeight: 600, borderBottom: "2px solid #e5e7eb"}, "& td": {padding: 1.5, borderBottom: "1px solid #e5e7eb"}, "& hr": {border: "none", borderTop: "1px solid #e5e7eb", my: 3}}}, [__jacJsx(ReactMarkdown, {"remarkPlugins": [remarkGfm]}, [markdown])]), __jacJsx(Divider, {"sx": {my: 3}}, []), __jacJsx(Box, {"sx": {mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 2}}, [__jacJsx(Typography, {"variant": "subtitle2", "sx": {fontWeight: 600, mb: 1}}, ["📚 Research Summary"]), __jacJsx(Typography, {"variant": "body2", "sx": {mb: 0.5}}, ["• Total searches conducted: ", search_count]), __jacJsx(Typography, {"variant": "body2", "sx": {mb: 0.5}}, ["• Deep research with multiple sources per topic"]), __jacJsx(Typography, {"variant": "body2"}, ["• Personalized to your specific needs"])])]);
   }
   function renderError(msg) {
     return __jacJsx(Typography, {"sx": {color: "error.main"}}, [msg.data.message]);

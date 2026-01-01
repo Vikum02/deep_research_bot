@@ -99,7 +99,6 @@ def Chat() -> any {
             formatted_history = formatted_history
         );
 
-        # Extract response data as object
         let reply_data = None;
         if (result and result.reports and result.reports.length > 0) {
             reply_data = result.reports[0];
@@ -123,7 +122,6 @@ def Chat() -> any {
             return prev.concat([botMessageObj]); 
         });
 
-        # Detect clarification based on type
         let is_asking_clarification = (reply_data.type == "clarification");
         
         if (is_asking_clarification and not awaitingClarification) {
@@ -137,14 +135,12 @@ def Chat() -> any {
         setLoading(false);
     }
 
-    # Render user message
     def renderUserMessage(msg: any) -> any {
         return <Typography sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
             {msg.text}
         </Typography>;
     }
 
-    # Render clarification questions
     def renderClarification(msg: any) -> any {
         let raw_text = msg.data.text;
         let lines = raw_text.split("\n");
@@ -181,7 +177,6 @@ def Chat() -> any {
         </Box>;
     }
 
-    # Render markdown research report - UPDATED TO USE REACT-MARKDOWN
     def renderMarkdownReport(msg: any) -> any {
         let markdown = msg.data.markdown;
         let topic = msg.data.topic;
@@ -310,14 +305,12 @@ def Chat() -> any {
         </Box>;
     }
 
-    # Render error message
     def renderError(msg: any) -> any {
         return <Typography sx={{ color: "error.main" }}>
             {msg.data.message}
         </Typography>;
     }
 
-    # Main render function
     def renderMessage(msg: any) -> any {
         if (msg.sender == "user") {
             return renderUserMessage(msg);
