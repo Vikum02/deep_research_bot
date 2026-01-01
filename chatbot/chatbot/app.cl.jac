@@ -1,5 +1,7 @@
 import from react { useState, useRef, useEffect }
 import from "@jac-client/utils" { Router, Routes, Route }
+import from 'react-markdown' { default as ReactMarkdown }
+import from 'remark-gfm' { default as remarkGfm }
 import from '@mui/material' { 
     Button, 
     TextField, 
@@ -13,7 +15,8 @@ import from '@mui/material' {
     ThemeProvider,
     createTheme,
     Fade,
-    Slide
+    Slide,
+    Divider
 }
 import from '@mui/icons-material' {
     SmartToy,
@@ -55,138 +58,6 @@ def Chat() -> any {
     let [loading, setLoading] = useState(false);
     let [awaitingClarification, setAwaitingClarification] = useState(false);
     let [originalQuestion, setOriginalQuestion] = useState("");
-
-    # HELPER: Parse inline markdown formatting
-    def parseInlineMarkdown(text: any) -> any {
-        if not text { return []; }
-        
-        let segments = [];
-        let current_text = text;
-        
-        # Process the text character by character to handle all patterns
-        let i = 0;
-        let buffer = "";
-        
-        while (i < current_text.length) {
-            # Check for ***bold italic*** (3 asterisks)
-            if i < current_text.length - 5 and current_text[i] == "*" and current_text[i + 1] == "*" and current_text[i + 2] == "*" {
-                # Save buffer as normal text
-                if buffer.length > 0 {
-                    segments.push({ text: buffer, bold: False, italic: False, code: False });
-                    buffer = "";
-                }
-                
-                # Find closing ***
-                let end = current_text.indexOf("***", i + 3);
-                if end != -1 {
-                    let bold_italic_text = current_text.substring(i + 3, end);
-                    segments.push({ text: bold_italic_text, bold: True, italic: True, code: False });
-                    i = end + 3;
-                    continue;
-                }
-            }
-            
-            # Check for **bold** (2 asterisks)
-            elif i < current_text.length - 4 and current_text[i] == "*" and current_text[i + 1] == "*" and current_text[i + 2] != "*" {
-                # Save buffer as normal text
-                if buffer.length > 0 {
-                    segments.push({ text: buffer, bold: False, italic: False, code: False });
-                    buffer = "";
-                }
-                
-                # Find closing **
-                let end = current_text.indexOf("**", i + 2);
-                if end != -1 {
-                    let bold_text = current_text.substring(i + 2, end);
-                    segments.push({ text: bold_text, bold: True, italic: False, code: False });
-                    i = end + 2;
-                    continue;
-                }
-            }
-            
-            # Check for *italic* (1 asterisk, not followed by another asterisk)
-            elif i < current_text.length - 2 and current_text[i] == "*" and current_text[i + 1] != "*" {
-                # Save buffer as normal text
-                if buffer.length > 0 {
-                    segments.push({ text: buffer, bold: False, italic: False, code: False });
-                    buffer = "";
-                }
-                
-                # Find closing *
-                let end = i + 1;
-                while (end < current_text.length and current_text[end] != "*") {
-                    end = end + 1;
-                }
-                
-                if end < current_text.length {
-                    let italic_text = current_text.substring(i + 1, end);
-                    segments.push({ text: italic_text, bold: False, italic: True, code: False });
-                    i = end + 1;
-                    continue;
-                }
-            }
-            
-            # Check for `code` (backticks)
-            elif current_text[i] == "`" {
-                # Save buffer as normal text
-                if buffer.length > 0 {
-                    segments.push({ text: buffer, bold: False, italic: False, code: False });
-                    buffer = "";
-                }
-                
-                # Find closing `
-                let end = current_text.indexOf("`", i + 1);
-                if end != -1 {
-                    let code_text = current_text.substring(i + 1, end);
-                    segments.push({ text: code_text, bold: False, italic: False, code: True });
-                    i = end + 1;
-                    continue;
-                }
-            }
-            
-            # Regular character - add to buffer
-            buffer = buffer + current_text[i];
-            i = i + 1;
-        }
-        
-        # Add remaining buffer
-        if buffer.length > 0 {
-            segments.push({ text: buffer, bold: False, italic: False, code: False });
-        }
-        
-        return segments;
-    }
-
-    # HELPER: Render formatted text segments
-    def renderFormattedText(text: any) -> any {
-        let segments = parseInlineMarkdown(text);
-        
-        return <Box component="span">
-            {segments.map(lambda seg: any, idx: number -> any {
-                let sx_style = {};
-                
-                if seg.bold {
-                    sx_style.fontWeight = 700;
-                }
-                
-                if seg.italic {
-                    sx_style.fontStyle = "italic";
-                }
-                
-                if seg.code {
-                    sx_style.fontFamily = "monospace";
-                    sx_style.backgroundColor = "rgba(0, 0, 0, 0.05)";
-                    sx_style.padding = "2px 6px";
-                    sx_style.borderRadius = "4px";
-                    sx_style.fontSize = "0.9em";
-                }
-                
-                return <Typography key={idx} component="span" sx={sx_style}>
-                    {seg.text}
-                </Typography>;
-            })}
-        </Box>;
-    }
 
     async def sendMessage() -> None {
         if loading { return; }
@@ -279,7 +150,6 @@ def Chat() -> any {
         let lines = raw_text.split("\n");
         let questions_list = [];
         
-        # Extract questions from Q1:, Q2:, Q3:, etc. format
         for line in lines {
             let line_stripped = line.trim();
             
@@ -296,7 +166,6 @@ def Chat() -> any {
             }
         }
         
-        # Render the parsed questions
         return <Box>
             <Typography sx={{ mb: 2, fontWeight: 600 }}>
                 🔍 To provide the most relevant research, I need to understand better:
@@ -312,61 +181,14 @@ def Chat() -> any {
         </Box>;
     }
 
-    # Render markdown research report with formatting
+    # Render markdown research report - UPDATED TO USE REACT-MARKDOWN
     def renderMarkdownReport(msg: any) -> any {
-        # Get raw markdown text from backend
         let markdown = msg.data.markdown;
         let topic = msg.data.topic;
         let search_count = msg.data.metadata.search_count;
         
-        # Parse markdown into sections by splitting on ## headers
-        let sections = markdown.split("## ");
-        
-        # Initialize parsed data
-        let executive_summary = "";
-        let key_findings = [];
-        let content_sections = [];
-        
-        # Process each section (skip first which is title with single #)
-        let i = 1;
-        while (i < sections.length) {
-            let section = sections[i];
-            let section_lines = section.split("\n");
-            let section_title = section_lines[0].trim();
-            
-            # Get content (everything after first line)
-            let section_content = section_lines.slice(1).join("\n").trim();
-            
-            # Parse Executive Summary
-            if section_title.indexOf("Executive Summary") != -1 {
-                executive_summary = section_content;
-            }
-            # Parse Key Findings (extract bullet points)
-            elif section_title.indexOf("Key Findings") != -1 {
-                let finding_lines = section_content.split("\n");
-                for finding_line in finding_lines {
-                    let trimmed = finding_line.trim();
-                    if trimmed.indexOf("- ") == 0 {
-                        key_findings.push(trimmed.replace("- ", "").trim());
-                    }
-                }
-            }
-            # Parse other content sections (but skip Research Summary after ---)
-            elif section_title.length > 0 {
-                if section_content.indexOf("**Research Summary**") == -1 and section_content.indexOf("---") == -1 {
-                    content_sections.push({
-                        "title": section_title,
-                        "content": section_content
-                    });
-                }
-            }
-            
-            i = i + 1;
-        }
-        
-        # Render the parsed report with formatted text
         return <Box>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: "primary.main" }}>
+            <Typography variant="h5" sx={{ mb: 1, fontWeight: 700, color: "primary.main" }}>
                 🔬 Deep Research Report
             </Typography>
             
@@ -374,57 +196,116 @@ def Chat() -> any {
                 Topic: {topic}
             </Typography>
             
-            <Box sx={{ mb: 3, p: 2, bgcolor: "primary.50", borderRadius: 2, borderLeft: "4px solid", borderColor: "primary.main" }}>
-                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700, color: "primary.dark" }}>
-                    📊 Executive Summary
-                </Typography>
-                <Typography sx={{ lineHeight: 1.8, color: "text.primary" }}>
-                    {renderFormattedText(executive_summary)}
-                </Typography>
+            <Divider sx={{ mb: 3 }} />
+            
+            <Box sx={{ 
+                "& h1": { 
+                    fontSize: "1.75rem", 
+                    fontWeight: 700, 
+                    mb: 2, 
+                    mt: 3,
+                    color: "primary.main"
+                },
+                "& h2": { 
+                    fontSize: "1.4rem", 
+                    fontWeight: 600, 
+                    mb: 2, 
+                    mt: 3,
+                    color: "text.primary",
+                    borderBottom: "2px solid #e5e7eb",
+                    paddingBottom: 1
+                },
+                "& h3": { 
+                    fontSize: "1.2rem", 
+                    fontWeight: 600, 
+                    mb: 1.5, 
+                    mt: 2,
+                    color: "text.primary"
+                },
+                "& p": { 
+                    mb: 2, 
+                    lineHeight: 1.8,
+                    color: "text.primary"
+                },
+                "& ul, & ol": { 
+                    mb: 2, 
+                    pl: 3 
+                },
+                "& li": { 
+                    mb: 1,
+                    lineHeight: 1.7
+                },
+                "& strong": { 
+                    fontWeight: 700,
+                    color: "text.primary"
+                },
+                "& em": { 
+                    fontStyle: "italic" 
+                },
+                "& code": {
+                    backgroundColor: "#f1f5f9",
+                    padding: "2px 6px",
+                    borderRadius: 1,
+                    fontSize: "0.9em",
+                    fontFamily: "monospace"
+                },
+                "& pre": {
+                    backgroundColor: "#f1f5f9",
+                    padding: 2,
+                    borderRadius: 2,
+                    overflow: "auto",
+                    mb: 2
+                },
+                "& blockquote": {
+                    borderLeft: "4px solid #6366f1",
+                    paddingLeft: 2,
+                    fontStyle: "italic",
+                    color: "text.secondary",
+                    mb: 2
+                },
+                "& table": {
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    mb: 2,
+                    border: "1px solid #e5e7eb"
+                },
+                "& th": {
+                    backgroundColor: "#f8fafc",
+                    padding: 1.5,
+                    textAlign: "left",
+                    fontWeight: 600,
+                    borderBottom: "2px solid #e5e7eb"
+                },
+                "& td": {
+                    padding: 1.5,
+                    borderBottom: "1px solid #e5e7eb"
+                },
+                "& hr": {
+                    border: "none",
+                    borderTop: "1px solid #e5e7eb",
+                    my: 3
+                }
+            }}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {markdown}
+                </ReactMarkdown>
             </Box>
             
-            <Box sx={{ mb: 3, p: 2, bgcolor: "secondary.50", borderRadius: 2, borderLeft: "4px solid", borderColor: "secondary.main" }}>
-                <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700, color: "secondary.dark" }}>
-                    🔍 Key Findings
-                </Typography>
-                {key_findings.map(lambda f: any, idx: number -> any {
-                    return <Box key={idx} sx={{ mb: 1.5, display: "flex", alignItems: "flex-start" }}>
-                        <Typography sx={{ mr: 1, color: "secondary.main", fontWeight: 700, minWidth: "24px" }}>
-                            •
-                        </Typography>
-                        <Typography sx={{ flex: 1, lineHeight: 1.7 }}>
-                            {renderFormattedText(f)}
-                        </Typography>
-                    </Box>;
-                })}
-            </Box>
+            <Divider sx={{ my: 3 }} />
             
-            {content_sections.map(lambda section: any, idx: number -> any {
-                return <Box key={idx} sx={{ mb: 3, p: 2, bgcolor: "grey.50", borderRadius: 2, borderLeft: "4px solid", borderColor: "grey.400" }}>
-                    <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700, color: "text.primary" }}>
-                        📈 {renderFormattedText(section.title)}
-                    </Typography>
-                    <Typography sx={{ whiteSpace: "pre-wrap", lineHeight: 1.8, color: "text.primary" }}>
-                        {renderFormattedText(section.content)}
-                    </Typography>
-                </Box>;
-            })}
-            
-            <Box sx={{ mt: 4, p: 2.5, bgcolor: "grey.100", borderRadius: 2, border: "2px dashed", borderColor: "grey.300" }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
+            <Box sx={{ mt: 3, p: 2, bgcolor: "grey.100", borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
                     📚 Research Summary
                 </Typography>
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        • Total searches conducted: <strong>{search_count}</strong>
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        • Deep research with multiple sources per topic
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        • Personalized to your specific needs
-                    </Typography>
-                </Box>
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    • Total searches conducted: {search_count}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 0.5 }}>
+                    • Deep research with multiple sources per topic
+                </Typography>
+                <Typography variant="body2">
+                    • Personalized to your specific needs
+                </Typography>
             </Box>
         </Box>;
     }
@@ -501,8 +382,8 @@ def Chat() -> any {
                         <Fade in={True} timeout={800}>
                             <Box
                                 sx={{
-                                    maxWidth: "85%",
-                                    padding: 2,
+                                    maxWidth: "70%",
+                                    padding: 1.5,
                                     borderRadius: 2,
                                     backgroundColor: bgColor,
                                     color: textColor,
@@ -523,7 +404,7 @@ def Chat() -> any {
         </Box>;
     }
 
-    return <Container maxWidth="lg" sx={{ py: 3 }}>
+    return <Container maxWidth="md" sx={{ py: 3 }}>
         <Fade in={True} timeout={1000}>
             <Box sx={{ 
                 display: "flex", 
@@ -556,7 +437,7 @@ def Chat() -> any {
                         color: "#64748b",
                         fontWeight: 500
                     }}>
-                        AI-powered comprehensive research assistant
+                        Ask me anything...
                     </Typography>
                 </Box>
             </Box>
@@ -566,7 +447,7 @@ def Chat() -> any {
             <Paper 
                 elevation={0}
                 sx={{
-                    height: "500px",
+                    height: "400px",
                     overflowY: "auto",
                     p: 3,
                     mb: 2,
@@ -612,7 +493,7 @@ def Chat() -> any {
                             sendMessage(); 
                         }
                     }}
-                    placeholder="Type your research topic here..."
+                    placeholder="Type your message here..."
                     variant="outlined"
                     disabled={loading}
                     sx={{
@@ -634,33 +515,33 @@ def Chat() -> any {
                     }}
                 />
                 <Button
-    variant="contained"
-    color="primary"
-    onClick={sendMessage}
-    disabled={loading or not currentMessage.trim()}
-    sx={{
-        minWidth: "64px",
-        height: "auto",
-        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
-        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)",
-        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-        "&:hover": {
-            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-            transform: "scale(1.05)",
-            boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"
-        },
-        "&:active": {
-            transform: "scale(0.95)",
-            boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)"
-        },
-        "&:disabled": {
-            background: "rgba(99, 102, 241, 0.5)",
-            transform: "none"
-        }
-    }}
->
-    <Send />
-</Button>
+                    variant="contained"
+                    color="primary"
+                    onClick={sendMessage}
+                    disabled={loading or not currentMessage.trim()}
+                    sx={{
+                        minWidth: "64px",
+                        height: "auto",
+                        background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                        boxShadow: "0 4px 12px rgba(99, 102, 241, 0.4)",
+                        transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                        "&:hover": {
+                            background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                            transform: "scale(1.1) rotate(5deg)",
+                            boxShadow: "0 8px 20px rgba(99, 102, 241, 0.6)"
+                        },
+                        "&:active": {
+                            transform: "scale(0.95)",
+                            boxShadow: "0 2px 8px rgba(99, 102, 241, 0.4)"
+                        },
+                        "&:disabled": {
+                            background: "rgba(99, 102, 241, 0.5)",
+                            transform: "none"
+                        }
+                    }}
+                >
+                    <Send />
+                </Button>
             </Box>
         </Fade>
     </Container>;
