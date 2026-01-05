@@ -65,13 +65,7 @@ Required Structure:
 - Finding 2 with specific data
 - Finding 3 with specific data
 
-## [Topic Section 1]
-[200-300 words with data, numbers, dates]
-
-## [Topic Section 2]
-[200-300 words with data, numbers, dates]
-
-## [Topic Section 3]
+## [Topic Section ]
 [200-300 words with data, numbers, dates]
 
 ## Recommendations
